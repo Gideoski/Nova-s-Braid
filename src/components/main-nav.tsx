@@ -40,11 +40,11 @@ export function MainNav() {
 
   return (
     <>
-      <SidebarHeader className="flex items-center justify-between">
+      <SidebarHeader className="hidden md:flex items-center justify-between">
         <Link href="/home">
           <Logo />
         </Link>
-        <SidebarTrigger className="md:hidden"/>
+        <SidebarTrigger />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
