@@ -17,9 +17,9 @@ export default function ContactPage() {
 
   const handleFeedbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const subject = 'Feedback for NOVA\'S BRAID GAME';
-    const body = encodeURIComponent(feedback);
-    window.location.href = `mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`;
+    const message = `*Feedback for NOVA'S BRAID GAME:*\n\n${feedback}`;
+    const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -76,7 +76,8 @@ export default function ContactPage() {
                     />
                   </div>
                   <Button type="submit" className="w-full">
-                    Send via Email
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Send via WhatsApp
                   </Button>
                 </form>
               </CardContent>
