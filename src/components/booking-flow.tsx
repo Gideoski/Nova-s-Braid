@@ -5,15 +5,14 @@ import { serviceCategories, Service, ServiceCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Trash2, User, Users } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
+import { cn } from '@/lib/utils';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -198,24 +197,41 @@ export function BookingFlow() {
 
       case 'SELECT_DATETIME':
         return (
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <Card>
-                    <CardHeader><CardTitle>Choose a Date</CardTitle></CardHeader>
-                    <CardContent className="flex justify-center">
-                        <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < new Date(new Date().toDateString())} />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle>Choose a Time</CardTitle></CardHeader>
-                    <CardContent>
-                        <Select onValueChange={setTime} value={time}>
-                            <SelectTrigger><SelectValue placeholder="Select a time slot" /></SelectTrigger>
-                            <SelectContent>
-                                {timeSlots.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </CardContent>
-                </Card>
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select Date & Time</CardTitle>
+                  <CardDescription>Choose an available date and time for your appointment.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8">
+                  <div className="flex justify-center">
+                    <Calendar 
+                      mode="single" 
+                      selected={date} 
+                      onSelect={setDate} 
+                      disabled={(d) => d < new Date(new Date().toDateString())}
+                      className="rounded-md border"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                      <h3 className="font-semibold text-center md:text-left">
+                          Available Slots for {date ? format(date, 'PPP') : '...'}
+                      </h3>
+                      <div className="grid grid-cols-3 gap-2">
+                          {timeSlots.map(slot => (
+                              <Button 
+                                  key={slot} 
+                                  variant={time === slot ? 'default' : 'outline'}
+                                  onClick={() => setTime(slot)}
+                                  className={cn("w-full", time === slot && "ring-2 ring-primary")}
+                              >
+                                  {slot}
+                              </Button>
+                          ))}
+                      </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
         );
         
@@ -291,7 +307,7 @@ export function BookingFlow() {
         {step !== 'CHOOSE_TYPE' && (
             <div className="flex justify-center gap-4 mt-8">
                 <Button variant="outline" onClick={handlePrevStep}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-                <Button onClick={handleNextStep} disabled={ (step === 'CONFIRM' && !termsAccepted) || (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0))}>
+                <Button onClick={handleNextStep} disabled={ (step === 'CONFIRM' && !termsAccepted) || (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || (step === 'SELECT_DATETIME' && (!date || !time))}>
                    {step === 'CONFIRM' ? 'Book Appointment' : 'Continue'} <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
             </div>
