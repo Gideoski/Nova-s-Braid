@@ -1,0 +1,68 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  Home,
+  Scissors,
+  Calendar,
+  Settings,
+  MessageSquare,
+  Contact,
+} from 'lucide-react';
+import { Logo } from './logo';
+import {
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarFooter,
+} from './ui/sidebar';
+
+const navItems = [
+  { href: '/home', label: 'Home', icon: Home },
+  { href: '/services', label: 'Services', icon: Scissors },
+  { href: '/appointments', label: 'Appointments', icon: Calendar },
+  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/contact', label: 'Feedback & Contact', icon: Contact },
+];
+
+export function MainNav() {
+  const pathname = usePathname();
+
+  return (
+    <>
+      <SidebarHeader className="flex items-center justify-between">
+        <Link href="/home">
+          <Logo />
+        </Link>
+        <SidebarTrigger className="md:hidden"/>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <SidebarMenuItem key={item.href}>
+                <Link href={item.href} legacyBehavior passHref>
+                  <SidebarMenuButton
+                    isActive={pathname.startsWith(item.href)}
+                    tooltip={item.label}
+                  >
+                    <Icon />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarContent>
+       <SidebarFooter className="hidden md:flex">
+          <SidebarTrigger />
+       </SidebarFooter>
+    </>
+  );
+}
