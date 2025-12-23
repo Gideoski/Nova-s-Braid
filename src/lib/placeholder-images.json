@@ -9,7 +9,7 @@
     {
       "id": "gallery-user-1",
       "description": "User uploaded image 1",
-      "imageUrl": "/image 1.jpeg",
+      "imageUrl": "/gallery/image 1.jpeg",
       "imageHint": "braided hairstyle"
     }
   ]
