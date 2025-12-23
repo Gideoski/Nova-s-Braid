@@ -19,6 +19,7 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarFooter,
+  useSidebar,
 } from './ui/sidebar';
 
 const navItems = [
@@ -31,6 +32,11 @@ const navItems = [
 
 export function MainNav() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  }
 
   return (
     <>
@@ -50,6 +56,7 @@ export function MainNav() {
                   asChild
                   isActive={pathname.startsWith(item.href)}
                   tooltip={item.label}
+                  onClick={handleLinkClick}
                 >
                   <Link href={item.href}>
                     <Icon />
