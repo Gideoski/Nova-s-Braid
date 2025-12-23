@@ -56,14 +56,18 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">Our Work</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {galleryImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden relative aspect-[4/5]">
-                  <Image
-                    src={encodeURI(image.imageUrl)}
-                    alt={image.description}
-                    data-ai-hint={image.imageHint}
-                    fill
-                    className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-                  />
+                <Card key={image.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="relative aspect-[4/5]">
+                      <Image
+                        src={encodeURI(image.imageUrl)}
+                        alt={image.description}
+                        data-ai-hint={image.imageHint}
+                        fill
+                        className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
+                      />
+                    </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
