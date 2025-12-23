@@ -335,7 +335,7 @@ export function BookingFlow() {
                             </label>
                         </div>
                     </CardContent>
-                </card>
+                </Card>
             </div>
         );
 
