@@ -177,13 +177,22 @@ export function BookingFlow() {
             <Accordion type="multiple" defaultValue={attendees.map(a => a.id)} className="w-full space-y-4">
                 {attendees.map((attendee, index) => (
                     <AccordionItem value={attendee.id} key={attendee.id} className="border rounded-lg">
-                        <AccordionTrigger className="p-4 text-lg font-semibold">
-                            <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center w-full p-4">
+                            <AccordionTrigger className="text-lg font-semibold flex-1 p-0">
                                 <span>{attendee.isGuest ? `Guest ${index}` : "Your Services"}</span>
-                                {attendee.isGuest && <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeGuest(attendee.id); }}><Trash2 className="h-4 w-4"/></Button>}
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4">
+                            </AccordionTrigger>
+                            {attendee.isGuest && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => removeGuest(attendee.id)}
+                                    className="ml-2"
+                                >
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            )}
+                        </div>
+                        <AccordionContent className="p-4 pt-0">
                            <div className="space-y-4">
                             {serviceCategories.map(category => (
                                 <div key={category.id}>
