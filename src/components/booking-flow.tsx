@@ -180,7 +180,7 @@ export function BookingFlow() {
                         <AccordionTrigger className="p-4 text-lg font-semibold">
                             <div className="flex items-center justify-between w-full">
                                 <span>{attendee.isGuest ? `Guest ${index}` : "Your Services"}</span>
-                                {attendee.isGuest && <Button variant="ghost" size="icon" onClick={() => removeGuest(attendee.id)}><Trash2 className="h-4 w-4"/></Button>}
+                                {attendee.isGuest && <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeGuest(attendee.id); }}><Trash2 className="h-4 w-4"/></Button>}
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4">
