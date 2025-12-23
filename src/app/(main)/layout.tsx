@@ -1,6 +1,5 @@
 
 import { MainNav } from "@/components/main-nav";
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
 
@@ -10,21 +9,16 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <div className="md:hidden flex items-center justify-between p-2 border-b bg-background sticky top-0 z-20">
-        <SidebarTrigger />
-        <Link href="/home" className="flex-1">
-          <div className="flex justify-center">
+    <div className="flex flex-col min-h-screen">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full border-b">
+        <div className="container flex h-14 items-center">
+          <Link href="/home" className="mr-auto">
             <Logo />
-          </div>
-        </Link>
-        {/* Empty div for spacing to center the logo */}
-        <div className="w-8" />
-      </div>
-      <Sidebar>
-        <MainNav />
-      </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
+          </Link>
+          <MainNav />
+        </div>
+      </header>
+      <main className="flex-1">{children}</main>
+    </div>
   );
 }

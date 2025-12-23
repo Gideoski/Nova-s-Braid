@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -9,18 +10,15 @@ import {
   Calendar,
   Settings,
   Contact,
+  Menu as MenuIcon,
 } from 'lucide-react';
-import { Logo } from './logo';
+import { Button } from '@/components/ui/button';
 import {
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarTrigger,
-  SidebarFooter,
-  useSidebar,
-} from './ui/sidebar';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -32,45 +30,37 @@ const navItems = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const { setOpenMobile } = useSidebar();
-
-  const handleLinkClick = () => {
-    setOpenMobile(false);
-  }
+  const [isOpen, setIsOpen] = React.useState(false);
 
   return (
-    <>
-      <SidebarHeader className="hidden md:flex items-center justify-between">
-        <Link href="/home">
-          <Logo />
-        </Link>
-        <SidebarTrigger />
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={item.label}
-                  onClick={handleLinkClick}
-                >
-                  <Link href={item.href}>
-                    <Icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarContent>
-       <SidebarFooter className="hidden md:flex">
-          <SidebarTrigger />
-       </SidebarFooter>
-    </>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost">
+          <MenuIcon className="h-5 w-5" />
+          <span className="ml-2">Menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <DropdownMenuItem key={item.href} asChild>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-2 ${
+                  pathname.startsWith(item.href)
+                    ? 'font-bold text-primary'
+                    : ''
+                }`}
+                onClick={() => setIsOpen(false)}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
