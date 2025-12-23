@@ -12,11 +12,13 @@ export default function MainLayout({
     <SidebarProvider>
       <div className="md:hidden flex items-center justify-between p-2 border-b bg-background sticky top-0 z-20">
         <SidebarTrigger />
-        <Link href="/home">
-          <Logo />
+        <Link href="/home" className="flex-1">
+          <div className="flex justify-center">
+            <Logo />
+          </div>
         </Link>
         {/* Empty div for spacing to center the logo */}
-        <div className="w-8" /> 
+        <div className="w-8" />
       </div>
       <Sidebar>
         <MainNav />
