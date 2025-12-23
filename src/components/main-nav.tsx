@@ -7,7 +7,6 @@ import {
   Scissors,
   Calendar,
   Settings,
-  MessageSquare,
   Contact,
 } from 'lucide-react';
 import { Logo } from './logo';

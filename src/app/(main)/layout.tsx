@@ -15,7 +15,8 @@ export default function MainLayout({
         <Link href="/home">
           <Logo />
         </Link>
-        <div className="w-8" />
+        {/* Empty div for spacing to center the logo */}
+        <div className="w-8" /> 
       </div>
       <Sidebar>
         <MainNav />
