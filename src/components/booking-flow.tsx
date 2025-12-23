@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { serviceCategories, Service, ServiceCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Trash2, User, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { Input } from './ui/input';
@@ -32,11 +32,6 @@ const bookingInfo = [
     "No Credit!!!",
 ];
 
-const timeSlots = [
-    "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
-];
-
 const ADMIN_PHONE_CLEAN = '2349135368368';
 
 export function BookingFlow() {
@@ -44,7 +39,7 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [time, setTime] = useState<string>('');
+  const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const totalCost = useMemo(() => {
@@ -197,13 +192,13 @@ export function BookingFlow() {
 
       case 'SELECT_DATETIME':
         return (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-2xl mx-auto">
               <Card>
                 <CardHeader>
                   <CardTitle>Select Date & Time</CardTitle>
                   <CardDescription>Choose an available date and time for your appointment.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8">
+                <CardContent className="space-y-8">
                   <div className="flex justify-center">
                     <Calendar 
                       mode="single" 
@@ -213,22 +208,18 @@ export function BookingFlow() {
                       className="rounded-md border"
                     />
                   </div>
-                  <div className="space-y-4">
-                      <h3 className="font-semibold text-center md:text-left">
-                          Available Slots for {date ? format(date, 'PPP') : '...'}
-                      </h3>
-                      <div className="grid grid-cols-3 gap-2">
-                          {timeSlots.map(slot => (
-                              <Button 
-                                  key={slot} 
-                                  variant={time === slot ? 'default' : 'outline'}
-                                  onClick={() => setTime(slot)}
-                                  className={cn("w-full", time === slot && "ring-2 ring-primary")}
-                              >
-                                  {slot}
-                              </Button>
-                          ))}
-                      </div>
+                  <div className='space-y-4'>
+                    <Label htmlFor="appointment-time" className="text-lg flex items-center gap-2">
+                        <Clock className="h-5 w-5"/>
+                        Appointment Time
+                    </Label>
+                    <Input
+                      id="appointment-time"
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      className="w-full text-center text-lg p-4"
+                    />
                   </div>
                 </CardContent>
               </Card>
