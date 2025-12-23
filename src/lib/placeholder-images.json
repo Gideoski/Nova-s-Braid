@@ -27,7 +27,7 @@
     {
       "id": "gallery-4",
       "description": "Long, flowing french curls hairstyle.",
-      "imageUrl": "https://images.unsplash.com/photo-1672857994550-154578be9f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcmVuY2glMjBjdXJsc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1672857994550-154578be9f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcmVuY2glMjBjdXJsc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "french curls"
     },
     {
@@ -39,13 +39,13 @@
     {
       "id": "gallery-6",
       "description": "Intricate cornrow design leading into long braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1594118152604-b344d5abbdf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjb3Jucm93JTIwZGVzaWdufGVufDB8fHx8MTc2NjQ5NzYzOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1594118152604-b344d5abbdf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjb3Jucm93JTIwZGVzaWdufGVufDB8fHx8MTc2NjQ5NzYzOXww&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "cornrow design"
     },
     {
       "id": "gallery-7",
       "description": "Colorful braids with accessories.",
-      "imageUrl": "https://images.unsplash.com/photo-1763256649490-6b0bd45f6760?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2xvcmZ1bCUyMGJyYWlkc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1763256649490-6b0bd45f6760?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2xvcmZ1bCUyMGJyYWlkc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib-rb-4.1.0&q=80&w=1080",
       "imageHint": "colorful braids"
     },
     {

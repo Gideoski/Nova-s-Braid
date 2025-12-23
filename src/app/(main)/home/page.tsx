@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function HomePage() {
   const galleryImages = PlaceHolderImages.filter(img => img.id.startsWith('gallery-'));
+  const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image');
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -38,11 +39,11 @@ export default function HomePage() {
                 </div>
               </div>
                <Image
-                src={PlaceHolderImages.find(p => p.id === 'hero-image')?.imageUrl || "https://picsum.photos/seed/hero/600/600"}
+                src={heroImage?.imageUrl || "https://picsum.photos/seed/hero/600/600"}
                 width={600}
                 height={600}
-                alt="Hero"
-                data-ai-hint="braided hairstyle"
+                alt={heroImage?.description || "Hero"}
+                data-ai-hint={heroImage?.imageHint || "braided hairstyle"}
                 className="mx-auto aspect-square overflow-hidden rounded-xl object-cover sm:w-full lg:order-last"
               />
             </div>
