@@ -5,30 +5,6 @@
       "description": "A woman with beautiful long braids, seen from the side.",
       "imageUrl": "https://images.unsplash.com/photo-1664645478451-e22012491601?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxicmFpZGVkJTIwaGFpcnN0eWxlfGVufDB8fHx8MTc2NjQxODc1MHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "braided hairstyle"
-    },
-    {
-      "id": "gallery-1",
-      "description": "Close-up of knotless box braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1757866331952-8d6c8adc4dbe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxrbm90bGVzcyUyMGJyYWlkc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "knotless braids"
-    },
-    {
-      "id": "gallery-2",
-      "description": "A woman with stylish Fulani braids with beads.",
-      "imageUrl": "https://images.unsplash.com/photo-1677319378211-06f6a50b49bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmdWxhbmklMjBicmFpZHN8ZW58MHx8fHwxNzY2NDk3NjM5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "fulani braids"
-    },
-    {
-      "id": "gallery-3",
-      "description": "Elegant Twist hairstyle.",
-      "imageUrl": "https://images.unsplash.com/photo-1519745447490-441196634558?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0d2lzdCUyMGhhaXJzdHlsZXxlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "twist hairstyle"
-    },
-    {
-      "id": "gallery-4",
-      "description": "Long, flowing french curls hairstyle.",
-      "imageUrl": "https://images.unsplash.com/photo-1672857994550-154578be9f41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmcmVuY2glMjBjdXJsc3xlbnwwfHx8fDE3NjY0OTc2Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "french curls"
     }
   ]
 }
