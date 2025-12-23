@@ -1,3 +1,4 @@
+'use client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -57,7 +58,7 @@ export default function HomePage() {
               {galleryImages.map((image) => (
                 <Card key={image.id} className="overflow-hidden relative aspect-[4/5]">
                   <Image
-                    src={image.imageUrl}
+                    src={encodeURI(image.imageUrl)}
                     alt={image.description}
                     data-ai-hint={image.imageHint}
                     fill
