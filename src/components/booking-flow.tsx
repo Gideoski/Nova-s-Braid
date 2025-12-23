@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { serviceCategories, Service, ServiceCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock } from 'lucide-react';
-import { Calendar } from './ui/calendar';
-import { format } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock } from 'lucide-react';
+import { format, set } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -39,8 +39,27 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const [day, setDay] = useState<string>(format(new Date(), 'dd'));
+  const [month, setMonth] = useState<string>(format(new Date(), 'MM'));
+  const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
+
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  useEffect(() => {
+    const dayInt = parseInt(day, 10);
+    const monthInt = parseInt(month, 10) - 1; // month is 0-indexed in Date
+    const yearInt = parseInt(year, 10);
+
+    if (!isNaN(dayInt) && !isNaN(monthInt) && !isNaN(yearInt) && year.length === 4) {
+      const newDate = set(new Date(), { year: yearInt, month: monthInt, date: dayInt });
+      setDate(newDate);
+    } else {
+      setDate(undefined);
+    }
+  }, [day, month, year]);
+
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
@@ -192,24 +211,46 @@ export function BookingFlow() {
 
       case 'SELECT_DATETIME':
         return (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-md mx-auto">
               <Card>
                 <CardHeader>
                   <CardTitle>Select Date & Time</CardTitle>
-                  <CardDescription>Choose an available date and time for your appointment.</CardDescription>
+                  <CardDescription>Choose a date and time for your appointment.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
-                  <div className="flex justify-center">
-                    <Calendar 
-                      mode="single" 
-                      selected={date} 
-                      onSelect={setDate} 
-                      disabled={(d) => d < new Date(new Date().toDateString())}
-                      className="rounded-md border"
-                    />
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Date (DD/MM/YYYY)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="day" 
+                        placeholder="DD" 
+                        maxLength={2} 
+                        value={day}
+                        onChange={(e) => setDay(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-16 text-center"
+                      />
+                      <span className="text-muted-foreground">/</span>
+                       <Input 
+                        id="month" 
+                        placeholder="MM" 
+                        maxLength={2} 
+                        value={month}
+                        onChange={(e) => setMonth(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-16 text-center"
+                      />
+                      <span className="text-muted-foreground">/</span>
+                      <Input 
+                        id="year" 
+                        placeholder="YYYY" 
+                        maxLength={4}
+                        value={year}
+                        onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-24 text-center"
+                      />
+                    </div>
                   </div>
-                  <div className='space-y-4'>
-                    <Label htmlFor="appointment-time" className="text-lg flex items-center gap-2">
+                  <div className='space-y-2'>
+                    <Label htmlFor="appointment-time" className="flex items-center gap-2">
                         <Clock className="h-5 w-5"/>
                         Appointment Time
                     </Label>
@@ -218,7 +259,7 @@ export function BookingFlow() {
                       type="time"
                       value={time}
                       onChange={(e) => setTime(e.target.value)}
-                      className="w-full text-center text-lg p-4"
+                      className="w-full text-lg p-2"
                     />
                   </div>
                 </CardContent>
@@ -255,7 +296,7 @@ export function BookingFlow() {
                 <Card>
                     <CardHeader><CardTitle>Confirm Your Appointment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{date ? format(date, 'PPP') : ''}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{date ? format(date, 'PPP') : 'Invalid Date'}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">Time:</span> <span>{time}</span></div>
                         <Separator />
                         {attendees.map((attendee) => (
@@ -306,3 +347,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
