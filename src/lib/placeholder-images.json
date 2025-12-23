@@ -5,6 +5,12 @@
       "description": "A woman with beautiful long braids, seen from the side.",
       "imageUrl": "https://images.unsplash.com/photo-1664645478451-e22012491601?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxicmFpZGVkJTIwaGFpcnN0eWxlfGVufDB8fHx8MTc2NjQxODc1MHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "braided hairstyle"
+    },
+    {
+      "id": "gallery-user-1",
+      "description": "User uploaded image 1",
+      "imageUrl": "/image 1.jpeg",
+      "imageHint": "braided hairstyle"
     }
   ]
 }
