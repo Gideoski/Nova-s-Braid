@@ -25,6 +25,7 @@ interface Attendee {
 }
 
 const bookingInfo = [
+    "At least 5% payment of the total is mandatory before rendering services to this account: Account number- 9135368368, Bank- OPAY, Name- FAVOUR CHINOYE OKOHIE. PAYMENTS RECEIPTS SHOULD BE SENT IMMEDIATELY AFTER BOOKING!!!",
     "Prices don't include attachment/extension.",
     "Attachment should be brought in before time for prepping.",
     "Come on time for your appointment to avoid extra fees.",
@@ -334,7 +335,7 @@ export function BookingFlow() {
                             </label>
                         </div>
                     </CardContent>
-                </Card>
+                </card>
             </div>
         );
 
