@@ -56,14 +56,15 @@ export default function HomePage() {
               {galleryImages.map((image, index) => (
                 <Card key={index} className="overflow-hidden">
                   <CardContent className="p-0">
-                    <Image
-                      src={image.imageUrl}
-                      alt={image.description}
-                      data-ai-hint={image.imageHint}
-                      width={400}
-                      height={500}
-                      className="aspect-[4/5] w-full object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-                    />
+                    <div className="relative aspect-[4/5] w-full">
+                      <Image
+                        src={image.imageUrl}
+                        alt={image.description}
+                        data-ai-hint={image.imageHint}
+                        fill
+                        className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
