@@ -53,6 +53,12 @@
       "description": "A stylish bob made of braids.",
       "imageUrl": "https://picsum.photos/seed/gallery8/400/500",
       "imageHint": "braid bob"
+    },
+    {
+      "id": "gallery-9",
+      "description": "A woman with intricate cornrow braids and curly ends.",
+      "imageUrl": "https://storage.googleapis.com/aip-dev-central-artifacts/user-project-1234/5ZnpCjRGTf2pT4lvq2y8.png",
+      "imageHint": "cornrow braids"
     }
   ]
 }
