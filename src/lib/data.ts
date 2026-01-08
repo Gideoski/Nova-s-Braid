@@ -60,4 +60,14 @@ export const serviceCategories: ServiceCategory[] = [
       { name: 'Extra length', price: 3000 },
     ],
   },
+  {
+    id: 'extensions',
+    name: 'Extensions',
+    services: [
+      { name: 'Big attachment', price: 6000 },
+      { name: 'Small attachment', price: 6000 },
+      { name: 'Boho curls', price: 5000 },
+      { name: 'French curls', price: 7000 },
+    ],
+  },
 ];
