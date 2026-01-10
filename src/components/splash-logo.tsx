@@ -22,7 +22,8 @@ export function SplashLogo() {
           fill="currentColor"
         />
       </svg>
-      <div className="flex flex-col items-center leading-none mt-2">
+      <div className="w-full h-px bg-foreground my-2"></div>
+      <div className="flex flex-col items-center leading-none">
         <span className="text-2xl font-bold tracking-wider">NOVA'S</span>
         <span
           className="text-xs font-light tracking-[0.2em] -mt-1"
@@ -30,7 +31,6 @@ export function SplashLogo() {
           BRAID GAME
         </span>
       </div>
-      <div className="w-full h-px bg-foreground mt-2"></div>
     </div>
   );
 }
