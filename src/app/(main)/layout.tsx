@@ -12,7 +12,7 @@ export default function MainLayout({
     <div className="flex flex-col min-h-screen">
       <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full border-b">
         <div className="container flex h-14 items-center">
-          <Link href="/home" className="mr-auto">
+          <Link href="/home" className="mr-auto flex items-center gap-2">
             <Logo />
           </Link>
           <MainNav />

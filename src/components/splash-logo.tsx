@@ -1,9 +1,9 @@
-export function Logo() {
+export function SplashLogo() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center">
       <svg
-        width="32"
-        height="32"
+        width="150"
+        height="100"
         viewBox="0 0 150 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -22,7 +22,15 @@ export function Logo() {
           fill="currentColor"
         />
       </svg>
-      <span className="font-bold text-lg">NOVA'S BRAID GAME</span>
+      <div className="flex flex-col items-center leading-none mt-2">
+        <span className="text-2xl font-bold tracking-wider">NOVA'S</span>
+        <span
+          className="text-xs font-light tracking-[0.2em] -mt-1"
+        >
+          BRAID GAME
+        </span>
+      </div>
+      <div className="w-full h-px bg-foreground mt-2"></div>
     </div>
   );
 }

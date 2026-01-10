@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Logo } from '@/components/logo';
+import { SplashLogo } from '@/components/splash-logo';
 
 export default function SplashPage() {
   const router = useRouter();
@@ -10,15 +10,15 @@ export default function SplashPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace('/home');
-    }, 3000); // Reduced time to 3 seconds
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [router]);
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-white">
+    <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="animation-fade-in">
-        <Logo />
+        <SplashLogo />
       </div>
     </div>
   );
