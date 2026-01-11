@@ -48,6 +48,7 @@ export function BookingFlow() {
   useEffect(() => {
     // This now runs only on the client, preventing a hydration mismatch.
     setIsClient(true);
+    // Initialize date only on client-side
     setDate(format(new Date(), 'yyyy-MM-dd'));
   }, []);
   
