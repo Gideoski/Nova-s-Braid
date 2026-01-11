@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { serviceCategories, Service, ServiceCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,6 +47,8 @@ export function BookingFlow() {
 
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  
+  const bottomNavRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const dayInt = parseInt(day, 10);
@@ -124,6 +126,9 @@ export function BookingFlow() {
       }
       return a;
     }));
+    setTimeout(() => {
+      bottomNavRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
   
   const updateAttendeeInfo = (id: string, field: 'name' | 'phone', value: string) => {
@@ -347,7 +352,7 @@ export function BookingFlow() {
     <div>
         {renderStep()}
         {step !== 'CHOOSE_TYPE' && (
-            <div className="flex justify-center gap-4 mt-8">
+            <div ref={bottomNavRef} className="flex justify-center gap-4 mt-8">
                 <Button variant="outline" onClick={handlePrevStep}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
                 <Button onClick={handleNextStep} disabled={ (step === 'CONFIRM' && !termsAccepted) || (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || (step === 'SELECT_DATETIME' && (!date || !time))}>
                    {step === 'CONFIRM' ? 'Book Appointment' : 'Continue'} <ChevronRight className="ml-2 h-4 w-4" />
