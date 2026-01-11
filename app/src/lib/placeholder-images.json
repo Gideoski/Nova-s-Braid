@@ -1,0 +1,41 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "A welcome image for the braiding service.",
+      "imageUrl": "/images/gallery/Welcome page.jpeg",
+      "imageHint": "braided hairstyle welcome"
+    },
+    {
+      "id": "gallery-user-1",
+      "description": "User uploaded image 1",
+      "imageUrl": "/images/gallery/brads image 1.jpeg",
+      "imageHint": "braided hairstyle"
+    },
+    {
+      "id": "gallery-user-2",
+      "description": "User uploaded image 2",
+      "imageUrl": "/images/gallery/braids image 2.jpeg",
+      "imageHint": "braided hairstyle"
+    },
+    {
+      "id": "gallery-user-3",
+      "description": "User uploaded image 3",
+      "imageUrl": "/images/gallery/braids image 4.jpeg",
+      "imageHint": "braided hairstyle"
+    },
+    {
+      "id": "gallery-user-4",
+      "description": "User uploaded image 4",
+      "imageUrl": "/images/gallery/braids image 5.jpeg",
+      "imageHint": "braided hairstyle"
+    },
+    {
+      "id": "gallery-user-5",
+      "description": "User uploaded image 5",
+      "imageUrl": "/images/gallery/braids image 8.jpeg",
+      "imageHint": "braided hairstyle"
+    }
+  ]
+}
