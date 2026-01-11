@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const navItems = [
-  { href: '/home', label: 'Home', icon: Home },
+  { href: '/', label: 'Home', icon: Home },
   { href: '/services', label: 'Services', icon: Scissors },
   { href: '/appointments', label: 'Appointments', icon: Calendar },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -31,6 +30,14 @@ const navItems = [
 export function MainNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
+
+  // Special case for home, since startsWith('/') is always true
+  const isCurrent = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+    return pathname.startsWith(href);
+  }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -48,7 +55,7 @@ export function MainNav() {
               <Link
                 href={item.href}
                 className={`flex items-center gap-2 ${
-                  pathname.startsWith(item.href)
+                  isCurrent(item.href)
                     ? 'font-bold text-primary'
                     : ''
                 }`}
