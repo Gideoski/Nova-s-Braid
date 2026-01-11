@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker, type DayPickerProps } from "react-day-picker"
+import { DayPicker, type DayPickerProps, useDayPicker, useNavigation } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -55,9 +55,9 @@ function Calendar({
         ...classNames,
       }}
       formatters={{
-        formatWeekdayName: (date) => {
-          const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-          return weekdays[date.getDay()];
+        formatWeekdayName: (weekday) => {
+          const day = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          return day[weekday.getDay()];
         },
       }}
       components={{
@@ -71,4 +71,3 @@ function Calendar({
 Calendar.displayName = "Calendar"
 
 export { Calendar }
-
