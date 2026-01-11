@@ -57,7 +57,7 @@ function Calendar({
       formatters={{
         formatWeekdayName: (day) => {
           const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day);
-          return weekday.substring(0, 2);
+          return weekday.substring(0, 1);
         }
       }}
       components={{
