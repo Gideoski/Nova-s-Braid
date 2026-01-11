@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { serviceCategories, Service } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
-import { format, set, parse } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -14,6 +14,8 @@ import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -41,10 +43,7 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   
-  const [day, setDay] = useState<string>(format(new Date(), 'dd'));
-  const [month, setMonth] = useState<string>(format(new Date(), 'MM'));
-  const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
-
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
   
@@ -57,14 +56,16 @@ export function BookingFlow() {
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
 
   const selectedDateTime = useMemo(() => {
+    if (!selectedDate || !time) return null;
     try {
-      const date = parse(`${year}-${month}-${day} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
-      if (isNaN(date.getTime())) return null;
-      return date;
+      const [hours, minutes] = time.split(':').map(Number);
+      const newDate = new Date(selectedDate);
+      newDate.setHours(hours, minutes, 0, 0);
+      return newDate;
     } catch {
       return null;
     }
-  }, [day, month, year, time]);
+  }, [selectedDate, time]);
 
   useEffect(() => {
     if (!selectedDateTime) {
@@ -271,35 +272,30 @@ export function BookingFlow() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Date (DD/MM/YYYY)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        id="day" 
-                        placeholder="DD" 
-                        maxLength={2} 
-                        value={day}
-                        onChange={(e) => setDay(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="w-16 text-center"
-                      />
-                      <span className="text-muted-foreground">/</span>
-                       <Input 
-                        id="month" 
-                        placeholder="MM" 
-                        maxLength={2} 
-                        value={month}
-                        onChange={(e) => setMonth(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="w-16 text-center"
-                      />
-                      <span className="text-muted-foreground">/</span>
-                      <Input 
-                        id="year" 
-                        placeholder="YYYY" 
-                        maxLength={4}
-                        value={year}
-                        onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="w-24 text-center"
-                      />
-                    </div>
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className='space-y-2'>
                     <Label htmlFor="appointment-time" className="flex items-center gap-2">
@@ -318,7 +314,7 @@ export function BookingFlow() {
                         {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
                         {availability === 'available' && <p className="text-sm font-semibold text-green-600">This slot is available.</p>}
                         {availability === 'unavailable' && <p className="text-sm font-semibold text-red-600">This slot is unavailable. Please pick another date or time.</p>}
-                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please enter a valid date.</p>}
+                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please enter a valid date and time.</p>}
                     </div>
                 </CardContent>
               </Card>
