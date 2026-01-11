@@ -21,7 +21,7 @@ export default function SplashPage() {
         src="/images/gallery/Welcome page.jpeg"
         alt="Welcome to Nova's Braid Game"
         fill
-        style={{ objectFit: 'cover' }}
+        style={{ objectFit: 'contain' }}
         className="animation-fade-in"
         priority
       />
