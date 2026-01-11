@@ -55,8 +55,8 @@ function Calendar({
         ...classNames,
       }}
       formatters={{
-        formatWeekdayName: (day, options) => {
-          const weekday = new Intl.DateTimeFormat(options?.locale, { weekday: 'short' }).format(day);
+        formatWeekdayName: (day) => {
+          const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day);
           return weekday.substring(0, 1).toUpperCase();
         }
       }}
