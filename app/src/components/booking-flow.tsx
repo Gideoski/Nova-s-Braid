@@ -40,9 +40,15 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -257,6 +263,27 @@ export function BookingFlow() {
         );
 
       case 'SELECT_DATETIME':
+        if (!isClient) {
+          return (
+            <div className="max-w-md mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select Date & Time</CardTitle>
+                  <CardDescription>Choose a date and time for your appointment.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-date">Date</Label>
+                    <div className="h-10 w-full rounded-md border border-input bg-background flex items-center px-3 py-2">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        }
         return (
             <div className="max-w-md mx-auto">
               <Card>
@@ -270,7 +297,7 @@ export function BookingFlow() {
                     <Input
                       id="appointment-date"
                       type="date"
-                      value={date}
+                      value={date || ''}
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full text-lg p-2"
                       min={format(new Date(), 'yyyy-MM-dd')}
@@ -384,3 +411,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
