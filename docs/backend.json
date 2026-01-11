@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "appointment": {
+      "title": "Appointment",
+      "description": "Represents a single booking for a service.",
+      "type": "object",
+      "properties": {
+        "dateTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The combined date and time of the appointment."
+        },
+        "attendees": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "totalCost": {
+          "type": "number"
+        }
+      },
+      "required": ["dateTime", "attendees", "totalCost"]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/appointments/{appointmentId}": {
+      "schema": {
+        "$ref": "#/entities/appointment"
+      },
+      "description": "Stores all booked appointments."
+    }
+  }
+}

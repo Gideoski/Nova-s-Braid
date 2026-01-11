@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { serviceCategories, Service, ServiceCategory } from '@/lib/data';
+import { serviceCategories, Service } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock } from 'lucide-react';
-import { format, set } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
+import { format, set, parse } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useFirestore, useCollection } from '@/firebase';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -39,7 +40,6 @@ export function BookingFlow() {
   const [step, setStep] = useState<Step>('CHOOSE_TYPE');
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
-  const [date, setDate] = useState<Date | undefined>(new Date());
   
   const [day, setDay] = useState<string>(format(new Date(), 'dd'));
   const [month, setMonth] = useState<string>(format(new Date(), 'MM'));
@@ -50,19 +50,45 @@ export function BookingFlow() {
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const dayInt = parseInt(day, 10);
-    const monthInt = parseInt(month, 10) - 1; // month is 0-indexed in Date
-    const yearInt = parseInt(year, 10);
+  const firestore = useFirestore();
+  const appointmentsRef = useMemo(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
+  const { data: appointments, loading: appointmentsLoading } = useCollection(appointmentsRef);
 
-    if (!isNaN(dayInt) && !isNaN(monthInt) && !isNaN(yearInt) && year.length === 4) {
-      const newDate = set(new Date(), { year: yearInt, month: monthInt, date: dayInt });
-      setDate(newDate);
-    } else {
-      setDate(undefined);
+  const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
+
+  const selectedDateTime = useMemo(() => {
+    try {
+      const date = parse(`${year}-${month}-${day} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+      if (isNaN(date.getTime())) return null;
+      return date;
+    } catch {
+      return null;
     }
-  }, [day, month, year]);
+  }, [day, month, year, time]);
 
+  useEffect(() => {
+    if (!selectedDateTime) {
+      setAvailability('invalid');
+      return;
+    }
+
+    if (appointmentsLoading) {
+      setAvailability('checking');
+      return;
+    }
+
+    if (!appointments) {
+      setAvailability('available'); // Assume available if loading fails, can be improved
+      return;
+    }
+
+    const isBooked = appointments.some(app => {
+      const bookedTime = (app.dateTime as Timestamp).toDate();
+      return bookedTime.getTime() === selectedDateTime.getTime();
+    });
+
+    setAvailability(isBooked ? 'unavailable' : 'available');
+  }, [selectedDateTime, appointments, appointmentsLoading]);
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
@@ -82,7 +108,7 @@ export function BookingFlow() {
         }
         break;
       case 'SELECT_DATETIME':
-        if (date && time) {
+        if (selectedDateTime && availability === 'available') {
             setStep('USER_INFO');
         }
         break;
@@ -135,24 +161,35 @@ export function BookingFlow() {
       setAttendees(attendees.map(a => a.id === id ? {...a, [field]: value} : a));
   }
 
-  const handleBooking = () => {
-    if (!termsAccepted) return;
+  const handleBooking = async () => {
+    if (!termsAccepted || !selectedDateTime || !firestore) return;
 
-    let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
-    message += `*Date:* ${format(date!, 'PPP')}\n`;
-    message += `*Time:* ${time}\n\n`;
+    try {
+        await addDoc(collection(firestore, 'appointments'), {
+            dateTime: Timestamp.fromDate(selectedDateTime),
+            attendees: attendees.map(({id, isGuest, ...rest}) => rest),
+            totalCost,
+        });
 
-    attendees.forEach((attendee, index) => {
-        message += `*${attendee.isGuest ? `Guest ${index}` : 'Appointment For'}:*\n`;
-        message += `Name: ${attendee.name}\n`;
-        message += `Phone: ${attendee.phone}\n`;
-        message += `Services: ${attendee.services.map(s => s.name).join(', ')}\n\n`;
-    });
-    
-    message += `*Total: ₦${totalCost.toLocaleString()}*\n`;
-    
-    const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+        let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
+        message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
+        message += `*Time:* ${time}\n\n`;
+
+        attendees.forEach((attendee, index) => {
+            message += `*${attendee.isGuest ? `Guest ${index}` : 'Appointment For'}:*\n`;
+            message += `Name: ${attendee.name}\n`;
+            message += `Phone: ${attendee.phone}\n`;
+            message += `Services: ${attendee.services.map(s => s.name).join(', ')}\n\n`;
+        });
+        
+        message += `*Total: ₦${totalCost.toLocaleString()}*\n`;
+        
+        const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        // You can add a user-facing error message here
+    }
   };
   
   const renderStep = () => {
@@ -277,6 +314,12 @@ export function BookingFlow() {
                       className="w-full text-lg p-2"
                     />
                   </div>
+                   <div className="text-center p-2 rounded-md">
+                        {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
+                        {availability === 'available' && <p className="text-sm font-semibold text-green-600">This slot is available.</p>}
+                        {availability === 'unavailable' && <p className="text-sm font-semibold text-red-600">This slot is unavailable. Please pick another date or time.</p>}
+                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please enter a valid date.</p>}
+                    </div>
                 </CardContent>
               </Card>
             </div>
@@ -311,7 +354,7 @@ export function BookingFlow() {
                 <Card>
                     <CardHeader><CardTitle>Confirm Your Appointment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{date ? format(date, 'PPP') : 'Invalid Date'}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{selectedDateTime ? format(selectedDateTime, 'PPP') : 'Invalid Date'}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">Time:</span> <span>{time}</span></div>
                         <Separator />
                         {attendees.map((attendee) => (
@@ -354,7 +397,11 @@ export function BookingFlow() {
         {step !== 'CHOOSE_TYPE' && (
             <div ref={bottomNavRef} className="flex justify-center gap-4 mt-8">
                 <Button variant="outline" onClick={handlePrevStep}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-                <Button onClick={handleNextStep} disabled={ (step === 'CONFIRM' && !termsAccepted) || (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || (step === 'SELECT_DATETIME' && (!date || !time))}>
+                <Button onClick={handleNextStep} disabled={ 
+                    (step === 'CONFIRM' && !termsAccepted) || 
+                    (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
+                    (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime))
+                }>
                    {step === 'CONFIRM' ? 'Book Appointment' : 'Continue'} <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
             </div>
@@ -362,5 +409,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
