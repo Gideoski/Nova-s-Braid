@@ -14,9 +14,6 @@ import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { Calendar } from './ui/calendar';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -59,8 +56,9 @@ export function BookingFlow() {
   const selectedDateTime = useMemo(() => {
     if (!selectedDate || !time) return null;
     try {
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
       const [hours, minutes] = time.split(':').map(Number);
-      const newDate = new Date(selectedDate);
+      const newDate = new Date(dateString);
       newDate.setHours(hours, minutes, 0, 0);
       return newDate;
     } catch {
@@ -273,29 +271,23 @@ export function BookingFlow() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={setSelectedDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="appointment-date">Date</Label>
+                    <Input
+                      id="appointment-date"
+                      type="date"
+                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                          const valueAsDate = e.target.valueAsDate;
+                          if (valueAsDate) {
+                            const correctedDate = new Date(valueAsDate.getTime() + valueAsDate.getTimezoneOffset() * 60000);
+                            setSelectedDate(correctedDate);
+                          } else {
+                            setSelectedDate(undefined);
+                          }
+                        }}
+                      className="w-full text-lg p-2"
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                    />
                   </div>
                   <div className='space-y-2'>
                     <Label htmlFor="appointment-time" className="flex items-center gap-2">
