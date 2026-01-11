@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { serviceCategories, Service } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -14,8 +14,6 @@ import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar } from './ui/calendar';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -272,30 +270,15 @@ export function BookingFlow() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={setSelectedDate}
-                          initialFocus
-                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="appointment-date">Date</Label>
+                    <Input
+                      id="appointment-date"
+                      type="date"
+                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : undefined)}
+                      className="w-full text-lg p-2"
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                    />
                   </div>
                   <div className='space-y-2'>
                     <Label htmlFor="appointment-time" className="flex items-center gap-2">
