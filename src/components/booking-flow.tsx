@@ -11,7 +11,6 @@ import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
-import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 
@@ -41,9 +40,17 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // This now runs only on the client, preventing a hydration mismatch.
+    setIsClient(true);
+    // Initialize date only on client-side
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -54,16 +61,14 @@ export function BookingFlow() {
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
 
   const selectedDateTime = useMemo(() => {
-    if (!selectedDate || !time) return null;
+    if (!date || !time) return null;
     try {
-      const [hours, minutes] = time.split(':').map(Number);
-      const newDate = new Date(selectedDate);
-      newDate.setHours(hours, minutes, 0, 0);
-      return newDate;
+      const dateTimeString = `${date}T${time}`;
+      return new Date(dateTimeString);
     } catch {
       return null;
     }
-  }, [selectedDate, time]);
+  }, [date, time]);
 
   useEffect(() => {
     if (!selectedDateTime) {
@@ -77,7 +82,7 @@ export function BookingFlow() {
     }
 
     if (!appointments) {
-      setAvailability('available'); // Assume available if loading fails, can be improved
+      setAvailability('available'); // Assume available if loading fails
       return;
     }
 
@@ -187,7 +192,6 @@ export function BookingFlow() {
         window.open(whatsappUrl, '_blank');
     } catch (error) {
         console.error("Error adding document: ", error);
-        // You can add a user-facing error message here
     }
   };
   
@@ -261,6 +265,27 @@ export function BookingFlow() {
         );
 
       case 'SELECT_DATETIME':
+        if (!isClient) {
+          return (
+            <div className="max-w-md mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select Date & Time</CardTitle>
+                  <CardDescription>Choose a date and time for your appointment.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-date">Date</Label>
+                    <div className="h-10 w-full rounded-md border border-input bg-background flex items-center px-3 py-2">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        }
         return (
             <div className="max-w-md mx-auto">
               <Card>
@@ -274,8 +299,8 @@ export function BookingFlow() {
                     <Input
                       id="appointment-date"
                       type="date"
-                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : undefined)}
+                      value={date || ''}
+                      onChange={(e) => setDate(e.target.value)}
                       className="w-full text-lg p-2"
                       min={format(new Date(), 'yyyy-MM-dd')}
                     />
