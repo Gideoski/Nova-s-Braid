@@ -1,11 +1,10 @@
-
 {
   "placeholderImages": [
     {
       "id": "hero-image",
-      "description": "A welcome image for the braiding service.",
+      "description": "A woman with beautiful long braids, seen from the side.",
       "imageUrl": "/images/gallery/Welcome page.jpeg",
-      "imageHint": "braided hairstyle welcome"
+      "imageHint": "braided hairstyle"
     },
     {
       "id": "gallery-user-1",

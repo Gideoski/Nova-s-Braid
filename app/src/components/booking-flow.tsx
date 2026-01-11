@@ -340,7 +340,7 @@ export function BookingFlow() {
                 {attendees.map((attendee, index) => (
                     <Card key={attendee.id}>
                         <CardHeader>
-                            <CardTitle>{attendee.isGuest ? `Guest ${index} Information` : 'Your Information'}</CardTitle>
+                            <CardTitle>{attendee.isGuest ? `Guest ${index + 1} Information` : 'Your Information'}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
