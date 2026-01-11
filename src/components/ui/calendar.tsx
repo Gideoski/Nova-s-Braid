@@ -55,10 +55,10 @@ function Calendar({
         ...classNames,
       }}
       formatters={{
-        formatWeekdayName: (weekday) => {
-          const day = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-          return day[weekday.getDay()];
-        },
+        formatWeekdayName: (day, options) => {
+          const weekday = new Intl.DateTimeFormat(options?.locale, { weekday: 'short' }).format(day);
+          return weekday.substring(0, 1).toUpperCase();
+        }
       }}
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
