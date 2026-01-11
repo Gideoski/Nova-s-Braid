@@ -35,6 +35,9 @@ const bookingInfo = [
 
 const ADMIN_PHONE_CLEAN = '2349135368368';
 
+// This function now generates a UUID only on the client-side.
+const generateId = () => (typeof window !== 'undefined' ? self.crypto.randomUUID() : '');
+
 export function BookingFlow() {
   const [step, setStep] = useState<Step>('CHOOSE_TYPE');
   const [isGroup, setIsGroup] = useState(false);
@@ -48,8 +51,8 @@ export function BookingFlow() {
   useEffect(() => {
     // This now runs only on the client, preventing a hydration mismatch.
     setIsClient(true);
-    // Initialize date only on client-side
-    if (!date) {
+    // Initialize date only on client-side to prevent mismatch.
+    if (date === null) {
       setDate(format(new Date(), 'yyyy-MM-dd'));
     }
   }, [date]);
@@ -105,7 +108,7 @@ export function BookingFlow() {
   const handleNextStep = () => {
     switch (step) {
       case 'CHOOSE_TYPE':
-        setAttendees([{ id: self.crypto.randomUUID(), isGuest: false, name: '', phone: '', services: [] }]);
+        setAttendees([{ id: generateId(), isGuest: false, name: '', phone: '', services: [] }]);
         setStep('SELECT_SERVICES');
         break;
       case 'SELECT_SERVICES':
@@ -142,7 +145,7 @@ export function BookingFlow() {
   };
   
   const addGuest = () => {
-    setAttendees([...attendees, { id: self.crypto.randomUUID(), isGuest: true, name: '', phone: '', services: [] }]);
+    setAttendees([...attendees, { id: generateId(), isGuest: true, name: '', phone: '', services: [] }]);
   };
 
   const removeGuest = (id: string) => {
@@ -270,7 +273,7 @@ export function BookingFlow() {
         );
 
       case 'SELECT_DATETIME':
-        if (!isClient) {
+        if (!isClient || date === null) {
           return (
             <div className="max-w-md mx-auto">
               <Card>
@@ -304,7 +307,7 @@ export function BookingFlow() {
                     <Input
                       id="appointment-date"
                       type="date"
-                      value={date || ''}
+                      value={date}
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full text-lg p-2"
                       min={format(new Date(), 'yyyy-MM-dd')}
