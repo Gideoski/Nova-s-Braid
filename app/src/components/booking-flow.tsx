@@ -11,7 +11,6 @@ import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
-import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 
@@ -41,7 +40,7 @@ export function BookingFlow() {
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
   
@@ -54,17 +53,14 @@ export function BookingFlow() {
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
 
   const selectedDateTime = useMemo(() => {
-    if (!selectedDate || !time) return null;
+    if (!date || !time) return null;
     try {
-      const dateString = format(selectedDate, 'yyyy-MM-dd');
-      const [hours, minutes] = time.split(':').map(Number);
-      const newDate = new Date(dateString);
-      newDate.setHours(hours, minutes, 0, 0);
-      return newDate;
+      const dateTimeString = `${date}T${time}`;
+      return new Date(dateTimeString);
     } catch {
       return null;
     }
-  }, [selectedDate, time]);
+  }, [date, time]);
 
   useEffect(() => {
     if (!selectedDateTime) {
@@ -78,7 +74,7 @@ export function BookingFlow() {
     }
 
     if (!appointments) {
-      setAvailability('available'); // Assume available if loading fails, can be improved
+      setAvailability('available'); // Assume available if loading fails
       return;
     }
 
@@ -188,7 +184,6 @@ export function BookingFlow() {
         window.open(whatsappUrl, '_blank');
     } catch (error) {
         console.error("Error adding document: ", error);
-        // You can add a user-facing error message here
     }
   };
   
@@ -275,16 +270,8 @@ export function BookingFlow() {
                     <Input
                       id="appointment-date"
                       type="date"
-                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => {
-                          const valueAsDate = e.target.valueAsDate;
-                          if (valueAsDate) {
-                            const correctedDate = new Date(valueAsDate.getTime() + valueAsDate.getTimezoneOffset() * 60000);
-                            setSelectedDate(correctedDate);
-                          } else {
-                            setSelectedDate(undefined);
-                          }
-                        }}
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
                       className="w-full text-lg p-2"
                       min={format(new Date(), 'yyyy-MM-dd')}
                     />
