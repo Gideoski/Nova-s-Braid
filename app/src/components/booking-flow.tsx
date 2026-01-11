@@ -413,5 +413,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
