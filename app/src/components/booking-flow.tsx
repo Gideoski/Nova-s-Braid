@@ -49,8 +49,10 @@ export function BookingFlow() {
     // This now runs only on the client, preventing a hydration mismatch.
     setIsClient(true);
     // Initialize date only on client-side
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-  }, []);
+    if (!date) {
+      setDate(format(new Date(), 'yyyy-MM-dd'));
+    }
+  }, [date]);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -103,7 +105,7 @@ export function BookingFlow() {
   const handleNextStep = () => {
     switch (step) {
       case 'CHOOSE_TYPE':
-        setAttendees([{ id: crypto.randomUUID(), isGuest: false, name: '', phone: '', services: [] }]);
+        setAttendees([{ id: self.crypto.randomUUID(), isGuest: false, name: '', phone: '', services: [] }]);
         setStep('SELECT_SERVICES');
         break;
       case 'SELECT_SERVICES':
@@ -129,7 +131,10 @@ export function BookingFlow() {
 
   const handlePrevStep = () => {
     switch (step) {
-      case 'SELECT_SERVICES': setStep('CHOOSE_TYPE'); break;
+      case 'SELECT_SERVICES': 
+        setStep('CHOOSE_TYPE'); 
+        setAttendees([]);
+        break;
       case 'SELECT_DATETIME': setStep('SELECT_SERVICES'); break;
       case 'USER_INFO': setStep('SELECT_DATETIME'); break;
       case 'CONFIRM': setStep('USER_INFO'); break;
@@ -137,7 +142,7 @@ export function BookingFlow() {
   };
   
   const addGuest = () => {
-    setAttendees([...attendees, { id: crypto.randomUUID(), isGuest: true, name: '', phone: '', services: [] }]);
+    setAttendees([...attendees, { id: self.crypto.randomUUID(), isGuest: true, name: '', phone: '', services: [] }]);
   };
 
   const removeGuest = (id: string) => {
@@ -335,7 +340,7 @@ export function BookingFlow() {
                 {attendees.map((attendee, index) => (
                     <Card key={attendee.id}>
                         <CardHeader>
-                            <CardTitle>{attendee.isGuest ? `Guest ${index + 1} Information` : 'Your Information'}</CardTitle>
+                            <CardTitle>{attendee.isGuest ? `Guest ${index} Information` : 'Your Information'}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
