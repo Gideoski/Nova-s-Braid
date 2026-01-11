@@ -3,12 +3,12 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, type DayPickerProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = DayPickerProps
 
 function Calendar({
   className,
@@ -54,6 +54,12 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
+      formatters={{
+        formatWeekdayName: (date) => {
+          const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          return weekdays[date.getDay()];
+        },
+      }}
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
@@ -65,3 +71,4 @@ function Calendar({
 Calendar.displayName = "Calendar"
 
 export { Calendar }
+
