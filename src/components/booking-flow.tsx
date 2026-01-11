@@ -105,7 +105,7 @@ export function BookingFlow() {
   const handleNextStep = () => {
     switch (step) {
       case 'CHOOSE_TYPE':
-        setAttendees([{ id: self.crypto.randomUUID(), isGuest: false, name: '', phone: '', services: [] }]);
+        setAttendees([{ id: crypto.randomUUID(), isGuest: false, name: '', phone: '', services: [] }]);
         setStep('SELECT_SERVICES');
         break;
       case 'SELECT_SERVICES':
@@ -142,7 +142,7 @@ export function BookingFlow() {
   };
   
   const addGuest = () => {
-    setAttendees([...attendees, { id: self.crypto.randomUUID(), isGuest: true, name: '', phone: '', services: [] }]);
+    setAttendees([...attendees, { id: crypto.randomUUID(), isGuest: true, name: '', phone: '', services: [] }]);
   };
 
   const removeGuest = (id: string) => {
