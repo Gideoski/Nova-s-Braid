@@ -46,6 +46,7 @@ export function BookingFlow() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // This now runs only on the client, preventing a hydration mismatch.
     setIsClient(true);
     setDate(format(new Date(), 'yyyy-MM-dd'));
   }, []);
@@ -411,5 +412,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
