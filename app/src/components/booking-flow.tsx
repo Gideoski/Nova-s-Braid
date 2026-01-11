@@ -225,7 +225,7 @@ export function BookingFlow() {
                     <AccordionItem value={attendee.id} key={attendee.id} className="border rounded-lg">
                         <div className="flex items-center w-full p-4">
                             <AccordionTrigger className="text-lg font-semibold flex-1 p-0">
-                                <span>{attendee.isGuest ? `Guest ${index}` : "Your Services"}</span>
+                                <span>{attendee.isGuest ? `Guest ${index + 1}` : "Your Services"}</span>
                             </AccordionTrigger>
                             {attendee.isGuest && (
                                 <Button 
@@ -335,7 +335,7 @@ export function BookingFlow() {
                 {attendees.map((attendee, index) => (
                     <Card key={attendee.id}>
                         <CardHeader>
-                            <CardTitle>{attendee.isGuest ? `Guest ${index} Information` : 'Your Information'}</CardTitle>
+                            <CardTitle>{attendee.isGuest ? `Guest ${index + 1} Information` : 'Your Information'}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
