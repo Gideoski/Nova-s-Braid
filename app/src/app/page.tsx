@@ -5,6 +5,9 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { MainNav } from "@/components/main-nav";
+import { Logo } from "@/components/logo";
+
 
 export default function HomePage() {
   const galleryImages = PlaceHolderImages.filter(img => img.id.startsWith('gallery-'));
@@ -12,6 +15,14 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full border-b">
+        <div className="container flex h-14 items-center">
+          <Link href="/" className="mr-auto flex items-center gap-2">
+            <Logo />
+          </Link>
+          <MainNav />
+        </div>
+      </header>
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-card">
           <div className="container px-4 md:px-6">
