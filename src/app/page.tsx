@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SplashLogo } from '@/components/splash-logo';
+import Image from 'next/image';
 
 export default function SplashPage() {
   const router = useRouter();
@@ -16,10 +16,15 @@ export default function SplashPage() {
   }, [router]);
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
-      <div className="animation-fade-in">
-        <SplashLogo />
-      </div>
+    <div className="h-screen w-full relative">
+      <Image
+        src="/images/gallery/Welcome page.jpeg"
+        alt="Welcome to Nova's Braid Game"
+        fill
+        style={{ objectFit: 'cover' }}
+        className="animation-fade-in"
+        priority
+      />
     </div>
   );
 }
