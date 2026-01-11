@@ -14,7 +14,9 @@ import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from './ui/calendar';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -36,7 +38,6 @@ const bookingInfo = [
 ];
 
 const ADMIN_PHONE_CLEAN = '2349135368368';
-const AVAILABLE_TIMES = ['09:00', '15:00'];
 
 export function BookingFlow() {
   const [step, setStep] = useState<Step>('CHOOSE_TYPE');
@@ -53,13 +54,10 @@ export function BookingFlow() {
   const appointmentsRef = useMemo(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
   const { data: appointments, loading: appointmentsLoading } = useCollection(appointmentsRef);
 
-  const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid' | 'weekend'>('invalid');
+  const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
 
   const selectedDateTime = useMemo(() => {
     if (!selectedDate || !time) return null;
-    const day = selectedDate.getDay();
-    if (day === 0 || day === 6) return null; // Sunday or Saturday
-
     try {
       const [hours, minutes] = time.split(':').map(Number);
       const newDate = new Date(selectedDate);
@@ -71,17 +69,6 @@ export function BookingFlow() {
   }, [selectedDate, time]);
 
   useEffect(() => {
-    if (!selectedDate) {
-      setAvailability('invalid');
-      return;
-    }
-
-    const day = new Date(selectedDate).getDay();
-    if (day === 0 || day === 6) { // 0 is Sunday, 6 is Saturday
-      setAvailability('weekend');
-      return;
-    }
-
     if (!selectedDateTime) {
       setAvailability('invalid');
       return;
@@ -93,7 +80,7 @@ export function BookingFlow() {
     }
 
     if (!appointments) {
-      setAvailability('available'); // Assume available if loading fails
+      setAvailability('available'); // Assume available if loading fails, can be improved
       return;
     }
 
@@ -103,7 +90,7 @@ export function BookingFlow() {
     });
 
     setAvailability(isBooked ? 'unavailable' : 'available');
-  }, [selectedDateTime, selectedDate, appointments, appointmentsLoading]);
+  }, [selectedDateTime, appointments, appointmentsLoading]);
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
@@ -175,11 +162,6 @@ export function BookingFlow() {
   const updateAttendeeInfo = (id: string, field: 'name' | 'phone', value: string) => {
       setAttendees(attendees.map(a => a.id === id ? {...a, [field]: value} : a));
   }
-  
-  const isWeekday = (date: Date) => {
-    const day = date.getDay();
-    return day !== 0 && day !== 6;
-  };
 
   const handleBooking = async () => {
     if (!termsAccepted || !selectedDateTime || !firestore) return;
@@ -287,43 +269,52 @@ export function BookingFlow() {
               <Card>
                 <CardHeader>
                   <CardTitle>Select Date & Time</CardTitle>
-                  <CardDescription>Choose a date and time for your appointment (Mon-Fri only).</CardDescription>
+                  <CardDescription>Choose a date and time for your appointment.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="appointment-date">Date</Label>
-                    <Input
-                        id="appointment-date"
-                        type="date"
-                        value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                            const dateValue = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
-                            setSelectedDate(dateValue);
-                        }}
-                        className="w-full text-lg p-2"
-                        min={format(new Date(), 'yyyy-MM-dd')}
-                    />
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className='space-y-2'>
                     <Label htmlFor="appointment-time" className="flex items-center gap-2">
                         <Clock className="h-5 w-5"/>
-                        Available Times
+                        Appointment Time
                     </Label>
-                    <RadioGroup value={time} onValueChange={setTime} className="grid grid-cols-2 gap-4">
-                        {AVAILABLE_TIMES.map(t => (
-                            <Label key={t} htmlFor={t} className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[input:checked]:border-primary has-[input:checked]:ring-1 has-[input:checked]:ring-primary">
-                                <RadioGroupItem value={t} id={t} />
-                                <span>{t === '09:00' ? '9:00 AM' : '3:00 PM'}</span>
-                            </Label>
-                        ))}
-                    </RadioGroup>
+                    <Input
+                      id="appointment-time"
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      className="w-full text-lg p-2"
+                    />
                   </div>
                    <div className="text-center p-2 rounded-md">
                         {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
                         {availability === 'available' && <p className="text-sm font-semibold text-green-600">This slot is available.</p>}
                         {availability === 'unavailable' && <p className="text-sm font-semibold text-red-600">This slot is unavailable. Please pick another date or time.</p>}
-                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please select a valid date and time.</p>}
-                        {availability === 'weekend' && <p className="text-sm font-semibold text-red-600">Appointments are only available from Monday to Friday.</p>}
+                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please enter a valid date and time.</p>}
                     </div>
                 </CardContent>
               </Card>
