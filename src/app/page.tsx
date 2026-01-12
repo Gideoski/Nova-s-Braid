@@ -12,6 +12,5 @@ export default function RootPage() {
   }, [router]);
 
   // Return a minimal loader or an empty div to prevent any layout flash.
-  // The new layout structure prevents the header from showing.
   return null;
 }
