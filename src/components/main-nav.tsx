@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from '@/components/ui/sheet';
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -29,45 +29,47 @@ const navItems = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = React.useState(false);
 
-  // Special case for home, since startsWith('/') is always true
   const isCurrent = (href: string) => {
     if (href === '/') {
       return pathname === '/';
     }
     return pathname.startsWith(href);
-  }
+  };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost">
-          <MenuIcon className="h-5 w-5" />
-          <span className="ml-2">Menu</span>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MenuIcon className="h-6 w-6" />
+          <span className="sr-only">Open Menu</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <DropdownMenuItem key={item.href} asChild>
-              <Link
-                href={item.href}
-                className={`flex items-center gap-2 ${
-                  isCurrent(item.href)
-                    ? 'font-bold text-primary'
-                    : ''
-                }`}
-                onClick={() => setIsOpen(false)}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </SheetTrigger>
+      <SheetContent side="left">
+        <div className="flex flex-col space-y-4 p-4">
+          <h2 className="text-lg font-semibold">Menu</h2>
+          <nav className="flex flex-col space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SheetClose asChild key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors ${
+                      isCurrent(item.href)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SheetClose>
+              );
+            })}
+          </nav>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
