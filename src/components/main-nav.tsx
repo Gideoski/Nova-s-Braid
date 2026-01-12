@@ -10,6 +10,8 @@ import {
   Settings,
   Contact,
   Menu as MenuIcon,
+  BookMarked,
+  Image as GalleryIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,15 +21,13 @@ import {
   SheetClose,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet';
 
 const navItems = [
-  { href: '/main', label: 'Home', icon: Home },
-  { href: '/services', label: 'Services', icon: Scissors },
-  { href: '/appointments', label: 'Appointments', icon: Calendar },
-  { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/contact', label: 'Feedback & Contact', icon: Contact },
+  { href: '/main', label: 'Home'},
+  { href: '/services', label: 'Services'},
+  { href: '/gallery', label: 'Gallery'},
+  { href: '/contact', label: 'Contact'},
 ];
 
 export function MainNav() {
@@ -41,43 +41,60 @@ export function MainNav() {
   };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <MenuIcon className="h-6 w-6" />
-          <span className="sr-only">Open Menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left">
-        <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
-          <SheetDescription className="sr-only">
-            Main navigation menu for the application.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-col space-y-4 p-4">
-          <nav className="flex flex-col space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <SheetClose asChild key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors ${
-                      isCurrent(item.href)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SheetClose>
-              );
-            })}
-          </nav>
-        </div>
-      </SheetContent>
-    </Sheet>
+    <>
+    {/* Desktop Nav */}
+    <nav className="hidden md:flex gap-6 text-lg font-medium">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`transition-colors hover:text-foreground/80 ${
+              isCurrent(item.href)
+                ? 'text-foreground'
+                : 'text-foreground/60'
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+    </nav>
+    
+    {/* Mobile Nav */}
+    <div className="md:hidden">
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <MenuIcon className="h-6 w-6" />
+            <span className="sr-only">Open Menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left">
+          <SheetHeader>
+            <SheetTitle>Menu</SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col space-y-4 p-4">
+            <nav className="flex flex-col space-y-2">
+              {[...navItems, { href: '/appointments', label: 'Book Appointment' }].map((item) => {
+                return (
+                  <SheetClose asChild key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors ${
+                        isCurrent(item.href)
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                    </Link>
+                  </SheetClose>
+                );
+              })}
+            </nav>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+    </>
   );
 }

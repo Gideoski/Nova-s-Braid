@@ -1,40 +1,58 @@
 {
   "placeholderImages": [
     {
-      "id": "hero-image",
-      "description": "A woman with beautiful long braids, seen from the side.",
-      "imageUrl": "/images/gallery/Welcome page.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "hero-main",
+      "description": "A woman with long, beautiful knotless braids with curly ends.",
+      "imageUrl": "https://images.unsplash.com/photo-1648863397001-cd77a7e98bd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMGJyYWlkc3xlbnwwfHx8fDE3NjgyMzE1NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman braids"
     },
     {
-      "id": "gallery-user-1",
-      "description": "User uploaded image 1",
-      "imageUrl": "/images/gallery/brads image 1.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "hero-secondary",
+      "description": "A close-up of intricate cornrows leading into a long, thick braid.",
+      "imageUrl": "https://images.unsplash.com/photo-1613323885593-5fbcf35bf8ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjb3Jucm93JTIwcG9ueXRhaWx8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cornrow ponytail"
     },
     {
-      "id": "gallery-user-2",
-      "description": "User uploaded image 2",
-      "imageUrl": "/images/gallery/braids image 2.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "service-knotless",
+      "description": "A woman facing forward with classic knotless braids.",
+      "imageUrl": "https://images.unsplash.com/photo-1763504121185-4466030de380?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxrbm90bGVzcyUyMGJyYWlkc3xlbnwwfHx8fDE3NjgxNDkwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "knotless braids"
     },
     {
-      "id": "gallery-user-3",
-      "description": "User uploaded image 3",
-      "imageUrl": "/images/gallery/braids image 4.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "service-boho",
+      "description": "A woman with boho braids featuring curly strands.",
+      "imageUrl": "https://images.unsplash.com/photo-1615754930920-ef87ac0b53ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxib2hvJTIwYnJhaWRzfGVufDB8fHx8MTc2ODIzMTU2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "boho braids"
     },
     {
-      "id": "gallery-user-4",
-      "description": "User uploaded image 4",
-      "imageUrl": "/images/gallery/braids image 5.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "service-cornrows",
+      "description": "A woman from behind showing a cornrow hairstyle.",
+      "imageUrl": "https://images.unsplash.com/photo-1665144800025-6b56e1ab9052?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjb3Jucm93cyUyMGJhY2t8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cornrows back"
     },
     {
-      "id": "gallery-user-5",
-      "description": "User uploaded image 5",
-      "imageUrl": "/images/gallery/braids image 8.jpeg",
-      "imageHint": "braided hairstyle"
+      "id": "service-kids",
+      "description": "A young girl with a cute braided hairstyle with beads.",
+      "imageUrl": "https://images.unsplash.com/photo-1761370571919-0c99c0011d27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxraWRzJTIwYnJhaWRzfGVufDB8fHx8MTc2ODIzMTU2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kids braids"
+    },
+    {
+      "id": "gallery-1",
+      "description": "Woman with highlighted curly braids.",
+      "imageUrl": "https://images.unsplash.com/photo-1665923148259-3340e61d3ff2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjdXJseSUyMGJyYWlkc3xlbnwwfHx8fDE3NjgyNTYzNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "curly braids"
+    },
+    {
+      "id": "gallery-2",
+      "description": "Woman with long, thick, curly dark braids.",
+      "imageUrl": "https://images.unsplash.com/photo-1664099160144-f6991681878d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjdXJseSUyMGJyYWlkc3xlbnwwfHx8fDE3NjgyNTYzNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "curly braids"
+    },
+    {
+      "id": "gallery-3",
+      "description": "Woman with simple, elegant braids.",
+      "imageUrl": "https://images.unsplash.com/photo-1760292305394-e94a855717a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzaW1wbGUlMjBicmFpZHN8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "simple braids"
     }
   ]
 }
