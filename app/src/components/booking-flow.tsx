@@ -93,7 +93,11 @@ export function BookingFlow() {
 
     const isBooked = appointments.some(app => {
       const bookedTime = (app.dateTime as Timestamp).toDate();
-      return bookedTime.getTime() === selectedDateTime.getTime();
+      // Compare only date and hour, as minutes might not be exact and cause issues.
+      return bookedTime.getFullYear() === selectedDateTime.getFullYear() &&
+             bookedTime.getMonth() === selectedDateTime.getMonth() &&
+             bookedTime.getDate() === selectedDateTime.getDate() &&
+             bookedTime.getHours() === selectedDateTime.getHours();
     });
 
     setAvailability(isBooked ? 'unavailable' : 'available');
@@ -145,7 +149,9 @@ export function BookingFlow() {
   };
   
   const addGuest = () => {
-    setAttendees([...attendees, { id: generateId(), isGuest: true, name: '', phone: '', services: [] }]);
+    if(isGroup) {
+      setAttendees([...attendees, { id: generateId(), isGuest: true, name: '', phone: '', services: [] }]);
+    }
   };
 
   const removeGuest = (id: string) => {
