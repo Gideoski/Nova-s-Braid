@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -37,14 +36,19 @@ const bookingInfo = [
 const ADMIN_PHONE_CLEAN = '2349135368368';
 
 // This function now generates a UUID only on the client-side.
-const generateId = () => (typeof window !== 'undefined' ? self.crypto.randomUUID() : '');
+const generateId = () => {
+    if (typeof window !== 'undefined') {
+        return self.crypto.randomUUID();
+    }
+    return Math.random().toString(); // Fallback for server
+};
 
 export function BookingFlow() {
   const [step, setStep] = useState<Step>('CHOOSE_TYPE');
   const [isGroup, setIsGroup] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   
-  const [date, setDate] = useState<string | null>(null);
+  const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -53,10 +57,8 @@ export function BookingFlow() {
     // This now runs only on the client, preventing a hydration mismatch.
     setIsClient(true);
     // Initialize date only on client-side to prevent mismatch.
-    if (date === null) {
-      setDate(format(new Date(), 'yyyy-MM-dd'));
-    }
-  }, [date]);
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -276,7 +278,7 @@ export function BookingFlow() {
         );
 
       case 'SELECT_DATETIME':
-        if (!isClient || date === null) {
+        if (!isClient) {
           return (
             <div className="max-w-md mx-auto">
               <Card>
