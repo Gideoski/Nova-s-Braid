@@ -1,0 +1,40 @@
+
+'use client';
+
+import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Instagram } from 'lucide-react';
+import { MainNav } from "@/components/main-nav";
+
+export function AppHeader() {
+  const pathname = usePathname();
+
+  // Don't render header on the welcome page
+  if (pathname === '/welcome') {
+    return null;
+  }
+
+  return (
+    <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full border-b">
+      <div className="container flex h-20 items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+           <div className="flex items-center justify-center h-10 w-10 border-2 border-foreground rounded-full">
+              <Instagram className="h-5 w-5 text-foreground" />
+          </div>
+        </Link>
+        <div className="hidden md:flex flex-1 justify-center">
+          <MainNav />
+        </div>
+        <div className="hidden md:flex justify-end">
+           <Button asChild>
+              <Link href="/appointments">Book Appointment</Link>
+            </Button>
+        </div>
+        <div className="md:hidden">
+          <MainNav />
+        </div>
+      </div>
+    </header>
+  );
+}
