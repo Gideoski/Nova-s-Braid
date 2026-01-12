@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -93,11 +94,7 @@ export function BookingFlow() {
 
     const isBooked = appointments.some(app => {
       const bookedTime = (app.dateTime as Timestamp).toDate();
-      // Compare only date and hour, as minutes might not be exact and cause issues.
-      return bookedTime.getFullYear() === selectedDateTime.getFullYear() &&
-             bookedTime.getMonth() === selectedDateTime.getMonth() &&
-             bookedTime.getDate() === selectedDateTime.getDate() &&
-             bookedTime.getHours() === selectedDateTime.getHours();
+      return bookedTime.getTime() === selectedDateTime.getTime();
     });
 
     setAvailability(isBooked ? 'unavailable' : 'available');
