@@ -19,8 +19,8 @@ export default function WelcomePage() {
     <div className="relative flex items-center justify-center h-screen w-screen bg-black overflow-hidden">
       <style jsx>{`
         @keyframes fadeInOut {
-          0%, 100% { opacity: 0; transform: scale(0.95); }
-          20%, 80% { opacity: 1; transform: scale(1); }
+          0%, 100% { opacity: 0; }
+          20%, 80% { opacity: 1; }
         }
         .splash-animation {
           animation: fadeInOut 5s ease-in-out forwards;
@@ -47,12 +47,12 @@ export default function WelcomePage() {
       <div className="splash-animation w-full h-full">
         <Image
           src="/images/gallery/Welcome page.jpeg"
-          alt="NOVA'S BRAID GAME Welcome"
+          alt="NOVA'S BRAID GAME Welcome background"
           layout="fill"
-          objectFit="contain"
+          objectFit="cover"
           priority
         />
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
            <h1 className="sparkle-text text-4xl md:text-6xl p-4">
             NOVA'S BRAID GAME
           </h1>
