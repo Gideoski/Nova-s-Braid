@@ -38,7 +38,7 @@ export default function RootLayout({
                 <div className="container flex h-14 items-center">
                   <div className="flex-1" />
                   <div className="flex-1 flex justify-center">
-                    <Link href="/" className="flex items-center gap-2">
+                    <Link href="/main" className="flex items-center gap-2">
                       <Logo />
                     </Link>
                   </div>

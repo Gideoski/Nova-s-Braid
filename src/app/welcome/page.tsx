@@ -9,7 +9,7 @@ export default function WelcomePage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace('/');
+      router.replace('/main');
     }, 5000);
 
     return () => clearTimeout(timer);

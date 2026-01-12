@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/sheet';
 
 const navItems = [
-  { href: '/', label: 'Home', icon: Home },
+  { href: '/main', label: 'Home', icon: Home },
   { href: '/services', label: 'Services', icon: Scissors },
   { href: '/appointments', label: 'Appointments', icon: Calendar },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -31,8 +31,8 @@ export function MainNav() {
   const pathname = usePathname();
 
   const isCurrent = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
+    if (href === '/main') {
+      return pathname === '/main' || pathname === '/';
     }
     return pathname.startsWith(href);
   };
