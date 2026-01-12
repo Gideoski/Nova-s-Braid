@@ -17,6 +17,9 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 
 const navItems = [
@@ -46,8 +49,13 @@ export function MainNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left">
+        <SheetHeader>
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription className="sr-only">
+            Main navigation menu for the application.
+          </SheetDescription>
+        </SheetHeader>
         <div className="flex flex-col space-y-4 p-4">
-          <h2 className="text-lg font-semibold">Menu</h2>
           <nav className="flex flex-col space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
