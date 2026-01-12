@@ -4,7 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { AppHeader } from '@/components/app-header';
+import { AppContent } from '@/components/app-content';
 
 
 export const metadata: Metadata = {
@@ -31,10 +31,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            <div className="flex flex-col min-h-screen">
-              <AppHeader />
-              <main className="flex-1">{children}</main>
-            </div>
+            <AppContent>
+                {children}
+            </AppContent>
             <Toaster />
           </FirebaseClientProvider>
         </ThemeProvider>

@@ -1,20 +1,12 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
 import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { Instagram } from 'lucide-react';
 import { MainNav } from "@/components/main-nav";
 
 export function AppHeader() {
-  const pathname = usePathname();
-
-  // Don't render header on the welcome page
-  if (pathname === '/welcome') {
-    return null;
-  }
-
   return (
     <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full border-b">
       <div className="container flex h-20 items-center justify-between">
