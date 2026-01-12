@@ -37,10 +37,12 @@ const ADMIN_PHONE_CLEAN = '2349135368368';
 
 // This function now generates a UUID only on the client-side.
 const generateId = () => {
-    if (typeof window !== 'undefined') {
+    // This check ensures crypto is only used on the client-side.
+    if (typeof window !== 'undefined' && self.crypto?.randomUUID) {
         return self.crypto.randomUUID();
     }
-    return Math.random().toString(36).substring(2, 15); // Fallback for server-side if needed, though we avoid calling it there.
+    // Fallback for environments where crypto is not available (like server-side rendering in some contexts)
+    return `id-${Math.random().toString(36).substring(2, 9)}`;
 };
 
 export function BookingFlow() {
@@ -54,11 +56,17 @@ export function BookingFlow() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // This now runs only on the client, preventing a hydration mismatch.
+    // This effect runs ONLY on the client, after the initial render.
+    // This safely avoids the hydration mismatch.
     setIsClient(true);
-    // Initialize date only on client-side to prevent mismatch.
     setDate(format(new Date(), 'yyyy-MM-dd'));
-  }, []);
+    
+    // Initialize attendees with a client-side generated ID
+    if (step === 'CHOOSE_TYPE' && attendees.length === 0) {
+      // This is a placeholder, handleNextStep will overwrite this.
+    }
+
+  }, []); // Empty dependency array ensures this runs only once on mount.
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -97,7 +105,8 @@ export function BookingFlow() {
     const isBooked = appointments.some(app => {
       if (!app.dateTime) return false;
       const bookedTime = (app.dateTime as Timestamp).toDate();
-      return bookedTime.getTime() === selectedDateTime.getTime();
+      // Compare time values, ignoring milliseconds
+      return Math.floor(bookedTime.getTime() / 1000) === Math.floor(selectedDateTime.getTime() / 1000);
     });
 
     setAvailability(isBooked ? 'unavailable' : 'available');
@@ -194,7 +203,7 @@ export function BookingFlow() {
         message += `*Time:* ${time}\n\n`;
 
         attendees.forEach((attendee, index) => {
-            message += `*${attendee.isGuest ? `Guest ${index}` : 'Appointment For'}:*\n`;
+            message += `*${attendee.isGuest ? `Guest ${index + 1}` : 'Appointment For'}:*\n`;
             message += `Name: ${attendee.name}\n`;
             message += `Phone: ${attendee.phone}\n`;
             message += `Services: ${attendee.services.map(s => s.name).join(', ')}\n\n`;
@@ -427,3 +436,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
