@@ -40,7 +40,7 @@ const generateId = () => {
     if (typeof window !== 'undefined') {
         return self.crypto.randomUUID();
     }
-    return Math.random().toString(); // Fallback for server
+    return Math.random().toString(36).substring(2, 15); // Fallback for server-side if needed, though we avoid calling it there.
 };
 
 export function BookingFlow() {
@@ -95,6 +95,7 @@ export function BookingFlow() {
     }
 
     const isBooked = appointments.some(app => {
+      if (!app.dateTime) return false;
       const bookedTime = (app.dateTime as Timestamp).toDate();
       return bookedTime.getTime() === selectedDateTime.getTime();
     });
