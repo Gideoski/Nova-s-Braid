@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -41,16 +41,6 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <Moon className="h-5 w-5" />
                     <span>Dark</span>
-                  </div>
-                </Label>
-                <Label
-                  htmlFor="system"
-                  className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent"
-                >
-                  <RadioGroupItem value="system" id="system" />
-                  <div className="flex items-center gap-2">
-                    <Monitor className="h-5 w-5" />
-                    <span>System</span>
                   </div>
                 </Label>
               </div>
