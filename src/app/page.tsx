@@ -10,5 +10,9 @@ export default function RootPage() {
     router.replace('/welcome');
   }, [router]);
 
-  return null;
+  return (
+    <div className="flex items-center justify-center h-screen bg-background">
+      {/* You can add a loader here if you want */}
+    </div>
+  );
 }

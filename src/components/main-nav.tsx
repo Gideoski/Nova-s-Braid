@@ -4,14 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
-  Scissors,
-  Calendar,
-  Settings,
-  Contact,
   Menu as MenuIcon,
-  BookMarked,
-  Image as GalleryIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {

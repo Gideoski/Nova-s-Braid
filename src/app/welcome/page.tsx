@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SplashLogo } from '@/components/splash-logo';
+import Image from 'next/image';
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function WelcomePage() {
   }, [router]);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
+    <div className="relative flex items-center justify-center h-screen w-screen bg-black">
       <style jsx>{`
         @keyframes fadeInOut {
           0%,
@@ -34,8 +34,14 @@ export default function WelcomePage() {
           animation: fadeInOut 5s ease-in-out forwards;
         }
       `}</style>
-      <div className="splash-animation">
-        <SplashLogo />
+      <div className="splash-animation w-full h-full">
+        <Image
+          src="/images/gallery/Welcome page.jpeg"
+          alt="NOVA'S BRAID GAME Welcome"
+          layout="fill"
+          objectFit="contain"
+          priority
+        />
       </div>
     </div>
   );
