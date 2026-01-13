@@ -5,8 +5,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { serviceCategories, Service } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
-import { format, getDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { format, getDay, parseISO } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -15,6 +15,7 @@ import { Separator } from './ui/separator';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -55,24 +56,21 @@ export function BookingFlow() {
   const [isClient, setIsClient] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedDay = useMemo(() => {
-    if (!date) return -1;
-    try {
-        const d = new Date(`${date}T00:00:00`);
-        return getDay(d);
-    } catch {
-        return -1;
-    }
-  }, [date]);
-
-  const isWeekday = selectedDay >= 1 && selectedDay <= 5;
-  const weekdayTimes = ['09:00', '15:00'];
-
   useEffect(() => {
     setIsClient(true);
     const today = new Date();
     setDate(format(today, 'yyyy-MM-dd'));
   }, []);
+
+  const selectedDay = useMemo(() => {
+    if (!date) return -1;
+    // Using parseISO ensures the date is interpreted correctly as local time.
+    const d = parseISO(date); 
+    return getDay(d);
+  }, [date]);
+
+  const isWeekday = selectedDay >= 1 && selectedDay <= 5;
+  const weekdayTimes = ['09:00', '15:00'];
 
   useEffect(() => {
     if (isWeekday && !weekdayTimes.includes(time)) {
@@ -84,15 +82,18 @@ export function BookingFlow() {
 
   const firestore = useFirestore();
   const appointmentsRef = useMemo(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
-  const { data: appointments, loading: appointmentsLoading } = useCollection(appointmentsRef);
+  const { data: appointments, loading: appointmentsLoading, error: appointmentsError } = useCollection(appointmentsRef);
 
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
 
   const selectedDateTime = useMemo(() => {
     if (!date || !time) return null;
     try {
-      const dateTimeString = `${date}T${time}`;
-      return new Date(dateTimeString);
+      // We parse the date and time as separate components to avoid timezone issues
+      // then combine them into a single Date object.
+      const [year, month, day] = date.split('-').map(Number);
+      const [hours, minutes] = time.split(':').map(Number);
+      return new Date(year, month - 1, day, hours, minutes);
     } catch {
       return null;
     }
@@ -110,14 +111,19 @@ export function BookingFlow() {
     }
 
     if (!appointments) {
-      setAvailability('available');
-      return;
+        // If appointments is null (could be due to an error or just no data), assume available for now.
+        // Error state is handled separately.
+        setAvailability('available');
+        return;
     }
+
+    const selectedTimestamp = selectedDateTime.getTime();
 
     const isBooked = appointments.some(app => {
       if (!app.dateTime) return false;
-      const bookedTime = (app.dateTime as Timestamp).toDate();
-      return Math.floor(bookedTime.getTime() / 1000) === Math.floor(selectedDateTime.getTime() / 1000);
+      // Compare timestamps directly for accuracy.
+      const bookedTimestamp = (app.dateTime as Timestamp).toDate().getTime();
+      return bookedTimestamp === selectedTimestamp;
     });
 
     setAvailability(isBooked ? 'unavailable' : 'available');
@@ -141,7 +147,7 @@ export function BookingFlow() {
         }
         break;
       case 'SELECT_DATETIME':
-        if (selectedDateTime && availability === 'available') {
+        if (selectedDateTime && availability === 'available' && !appointmentsError) {
             setStep('USER_INFO');
         }
         break;
@@ -149,9 +155,6 @@ export function BookingFlow() {
         if (attendees.every(a => a.name && a.phone)) {
             setStep('CONFIRM');
         }
-        break;
-      case 'CONFIRM':
-        handleBooking();
         break;
     }
   };
@@ -380,7 +383,15 @@ export function BookingFlow() {
                         {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
                         {availability === 'available' && <p className="text-sm font-semibold text-green-600">This slot is available.</p>}
                         {availability === 'unavailable' && <p className="text-sm font-semibold text-red-600">This slot is unavailable. Please pick another date or time.</p>}
-                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please enter a valid date and time.</p>}
+                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please select a valid date and time.</p>}
+                        {appointmentsError && (
+                            <Alert variant="destructive" className="mt-4 text-left">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Could not check availability. Please try again later.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </div>
                 </CardContent>
               </Card>
@@ -466,7 +477,7 @@ export function BookingFlow() {
     return (
        <Button onClick={handleNextStep} disabled={ 
             (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
-            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime)) ||
+            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime || !!appointmentsError)) ||
             (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone))
         }>
            Continue <ChevronRight className="ml-2 h-4 w-4" />

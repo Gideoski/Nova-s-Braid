@@ -11,6 +11,7 @@ import {
   type QueryConstraint,
   type Unsubscribe,
 } from 'firebase/firestore';
+import { FirestorePermissionError } from '../errors';
 
 interface UseCollectionOptions {
   query?: QueryConstraint[];
@@ -32,6 +33,7 @@ export const useCollection = <T extends DocumentData>(
     }
 
     setLoading(true);
+    setError(null);
     let unsubscribe: Unsubscribe | undefined;
 
     try {
@@ -44,14 +46,23 @@ export const useCollection = <T extends DocumentData>(
           setData(documents);
           setLoading(false);
         },
-        (err) => {
-          console.error(err);
-          setError(err);
+        async (err) => {
+          console.error('Firestore onSnapshot error:', err);
+          
+          if (err.code === 'permission-denied') {
+              const permissionError = new FirestorePermissionError({
+                  path: q.path,
+                  operation: 'list',
+              });
+              setError(permissionError);
+          } else {
+              setError(err);
+          }
           setLoading(false);
         }
       );
     } catch (err: any) {
-      console.error(err);
+      console.error('Error setting up onSnapshot:', err);
       setError(err);
       setLoading(false);
     }
