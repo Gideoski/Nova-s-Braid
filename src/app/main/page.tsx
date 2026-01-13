@@ -52,7 +52,7 @@ export default function MainPage() {
       <section className="container mx-auto py-12 md:py-20">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="space-y-6 text-center md:text-left">
-            <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight">
+            <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight text-primary">
               Nova's Braid Game
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground font-light">
@@ -92,7 +92,7 @@ export default function MainPage() {
           )}
           <div className="md:col-span-3">
             <div className="mb-8">
-                <h2 className="font-headline text-4xl md:text-5xl font-bold">Our Services</h2>
+                <h2 className="font-headline text-4xl md:text-5xl font-bold text-primary">Our Services</h2>
                 <p className="text-lg text-muted-foreground mt-2">Protective styles done with precision, care, and beauty.</p>
             </div>
             <div className="grid grid-cols-2 gap-4 md:gap-6">
@@ -119,7 +119,7 @@ export default function MainPage() {
        <section className="container mx-auto py-12 md:py-24">
         <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-center">
             <div className="space-y-4">
-                <h2 className="font-headline text-4xl md:text-5xl font-bold">Stunning Braids for Every Beauty</h2>
+                <h2 className="font-headline text-4xl md:text-5xl font-bold text-primary">Stunning Braids for Every Beauty</h2>
                 <p className="text-muted-foreground text-lg">
                     From trendy Knotless Braids to Boho and everything-between, Nova's Braid Game is your go-to for flawless, long-lasting braids. Book your appointment today, and let your hair shine.
                 </p>

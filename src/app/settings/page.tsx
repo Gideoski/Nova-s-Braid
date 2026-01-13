@@ -12,7 +12,7 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-12 text-center">Settings</h1>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-12 text-center text-primary">Settings</h1>
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
