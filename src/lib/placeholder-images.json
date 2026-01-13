@@ -19,10 +19,10 @@
       "imageHint": "knotless braids"
     },
     {
-      "id": "service-boho",
-      "description": "A woman with boho braids featuring curly strands.",
-      "imageUrl": "https://images.unsplash.com/photo-1615754930920-ef87ac0b53ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxib2hvJTIwYnJhaWRzfGVufDB8fHx8MTc2ODIzMTU2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "boho braids"
+      "id": "service-ponytail",
+      "description": "A sleek, high ponytail.",
+      "imageUrl": "/images/gallery/ponytail.jpeg",
+      "imageHint": "sleek ponytail"
     },
     {
       "id": "service-cornrows",

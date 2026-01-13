@@ -21,10 +21,10 @@ const services: Service[] = [
         image: PlaceHolderImages.find(img => img.id === 'service-knotless')!
     },
     {
-        id: 'boho-braids',
-        name: 'Boho Braids',
+        id: 'ponytail',
+        name: 'Ponytail',
         description: 'Protective styles done with precision, care, and beauty.',
-        image: PlaceHolderImages.find(img => img.id === 'service-boho')!
+        image: PlaceHolderImages.find(img => img.id === 'service-ponytail')!
     },
     {
         id: 'cornrows',
