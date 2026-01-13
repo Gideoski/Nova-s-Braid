@@ -151,7 +151,7 @@ export function BookingFlow() {
         }
         break;
       case 'CONFIRM':
-        // This case is now handled directly by the button's onClick
+        handleBooking();
         break;
     }
   };
@@ -203,12 +203,17 @@ export function BookingFlow() {
     if (!termsAccepted || !selectedDateTime || !firestore || isSubmitting) return;
 
     setIsSubmitting(true);
+    
+    // Don't wait for the database write, redirect immediately.
     try {
         if(appointmentsRef){
-            await addDoc(appointmentsRef, {
+            addDoc(appointmentsRef, {
                 dateTime: Timestamp.fromDate(selectedDateTime),
                 attendees: attendees.map(({id, isGuest, ...rest}) => rest),
                 totalCost,
+            }).catch(error => {
+                // Log error in the background without blocking the user
+                console.error("Error adding document in background: ", error);
             });
         }
 
@@ -227,10 +232,12 @@ export function BookingFlow() {
         
         const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
+        
     } catch (error) {
-        console.error("Error adding document: ", error);
-        // You might want to show an error toast to the user here
+        // This will now only catch errors from the immediate synchronous code (like generating the message)
+        console.error("Error preparing booking message: ", error);
     } finally {
+        // The user has been redirected, we can stop the loading indicator
         setIsSubmitting(false);
     }
   };
@@ -459,7 +466,8 @@ export function BookingFlow() {
     return (
        <Button onClick={handleNextStep} disabled={ 
             (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
-            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime))
+            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime)) ||
+            (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone))
         }>
            Continue <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
@@ -478,5 +486,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
