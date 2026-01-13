@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -243,6 +244,7 @@ export function BookingFlow() {
         window.open(whatsappUrl, '_blank');
     } catch (error) {
         console.error("Error adding document: ", error);
+        // You might want to show an error toast to the user here
     }
   };
   
@@ -352,7 +354,7 @@ export function BookingFlow() {
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full text-lg p-2"
+                      className="w-full"
                       min={format(new Date(), 'yyyy-MM-dd')}
                     />
                   </div>
@@ -363,7 +365,7 @@ export function BookingFlow() {
                     </Label>
                     {isWeekday ? (
                         <Select value={time} onValueChange={setTime}>
-                            <SelectTrigger className="w-full text-lg p-2 h-auto">
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a time" />
                             </SelectTrigger>
                             <SelectContent>
@@ -376,7 +378,7 @@ export function BookingFlow() {
                             type="time"
                             value={time}
                             onChange={(e) => setTime(e.target.value)}
-                            className="w-full text-lg p-2"
+                            className="w-full"
                         />
                     )}
                   </div>
