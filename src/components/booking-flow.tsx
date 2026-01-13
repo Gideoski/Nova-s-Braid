@@ -5,7 +5,7 @@ import { serviceCategories, Service } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, getDay } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -13,6 +13,7 @@ import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -55,18 +56,37 @@ export function BookingFlow() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  const selectedDay = useMemo(() => {
+    if (!date) return -1;
+    try {
+        const d = new Date(`${date}T00:00:00`);
+        return getDay(d);
+    } catch {
+        return -1;
+    }
+  }, [date]);
+
+  const isWeekday = selectedDay >= 1 && selectedDay <= 5; // Monday to Friday
+  const weekdayTimes = ['09:00', '15:00'];
+
   useEffect(() => {
     // This effect runs ONLY on the client, after the initial render.
     // This safely avoids the hydration mismatch.
     setIsClient(true);
-    setDate(format(new Date(), 'yyyy-MM-dd'));
+    const today = new Date();
+    setDate(format(today, 'yyyy-MM-dd'));
     
     // Initialize attendees with a client-side generated ID
     if (step === 'CHOOSE_TYPE' && attendees.length === 0) {
       // This is a placeholder, handleNextStep will overwrite this.
     }
+    
+    // Reset time if it becomes invalid
+    if (isWeekday && !weekdayTimes.includes(time)) {
+        setTime('09:00');
+    }
 
-  }, []); // Empty dependency array ensures this runs only once on mount.
+  }, [isWeekday, time]); // Rerun if isWeekday changes
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -333,13 +353,24 @@ export function BookingFlow() {
                         <Clock className="h-5 w-5"/>
                         Appointment Time
                     </Label>
-                    <Input
-                      id="appointment-time"
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className="w-full text-lg p-2"
-                    />
+                    {isWeekday ? (
+                        <Select value={time} onValueChange={setTime}>
+                            <SelectTrigger className="w-full text-lg p-2 h-auto">
+                                <SelectValue placeholder="Select a time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {weekdayTimes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <Input
+                            id="appointment-time"
+                            type="time"
+                            value={time}
+                            onChange={(e) => setTime(e.target.value)}
+                            className="w-full text-lg p-2"
+                        />
+                    )}
                   </div>
                    <div className="text-center p-2 rounded-md">
                         {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
