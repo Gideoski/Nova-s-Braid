@@ -9,13 +9,13 @@
     {
       "id": "hero-secondary",
       "description": "A close-up of intricate cornrows leading into a long, thick braid.",
-      "imageUrl": "https://images.unsplash.com/photo-1613323885593-5fbcf35bf8ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjb3Jucm93JTIwcG9ueXRhaWx8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "/images/gallery/knotless.jpeg",
       "imageHint": "cornrow ponytail"
     },
     {
       "id": "service-knotless",
       "description": "A woman facing forward with classic knotless braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1763504121185-4466030de380?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxrbm90bGVzcyUyMGJyYWlkc3xlbnwwfHx8fDE3NjgxNDkwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "/images/gallery/knotless.jpeg",
       "imageHint": "knotless braids"
     },
     {
