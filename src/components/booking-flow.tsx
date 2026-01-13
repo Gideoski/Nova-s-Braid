@@ -59,6 +59,7 @@ export function BookingFlow() {
   const selectedDay = useMemo(() => {
     if (!date) return -1;
     try {
+        // Use T00:00:00 to avoid timezone issues and get the correct local day.
         const d = new Date(`${date}T00:00:00`);
         return getDay(d);
     } catch {
@@ -86,7 +87,14 @@ export function BookingFlow() {
         setTime('09:00');
     }
 
-  }, [isWeekday, time]); // Rerun if isWeekday changes
+  }, []); // Only run once on mount
+
+  useEffect(() => {
+    // When the day type changes, reset the time if needed.
+    if (isWeekday && !weekdayTimes.includes(time)) {
+      setTime('09:00');
+    }
+  }, [isWeekday, time]);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
