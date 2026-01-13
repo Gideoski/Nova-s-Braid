@@ -312,17 +312,9 @@ export function BookingFlow() {
                                         const isSelected = !!attendee.services.find(s => s.name === service.name);
                                         const isExtension = category.id === 'extensions';
 
-                                        const handleCardClick = () => {
-                                            // Toggle service selection only for non-extension items
-                                            // or if an extension item is being selected for the first time.
-                                            if (!isExtension || !isSelected) {
-                                                toggleService(attendee.id, service);
-                                            }
-                                        };
-
                                         return (
                                             <Card key={service.name} className={`flex flex-col transition-all ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
-                                                <div className="flex-grow cursor-pointer" onClick={handleCardClick}>
+                                                <div className="flex-grow cursor-pointer" onClick={() => toggleService(attendee.id, service)}>
                                                     <CardHeader>
                                                         <CardTitle className="text-base">{service.name}</CardTitle>
                                                         <CardDescription className="text-lg font-bold text-primary">₦{service.price.toLocaleString()}</CardDescription>
