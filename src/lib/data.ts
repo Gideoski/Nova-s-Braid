@@ -33,6 +33,8 @@ export const serviceCategories: ServiceCategory[] = [
     services: [
       { name: 'Natural twist', price: 5000 },
       { name: 'Micro twist shoulder', price: 20000 },
+      { name: 'Micro Twist Mid Back', price: 30000 },
+      { name: 'Passion Twist Mid Back', price: 15000 },
       { name: 'Mini twist', price: 15000 },
       { name: 'Island twist shoulder', price: 16000 },
       { name: 'Island twist mid-back', price: 20000 },
