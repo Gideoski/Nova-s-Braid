@@ -43,10 +43,10 @@ export function MainNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`transition-colors hover:text-primary/80 ${
+            className={`text-primary transition-colors hover:text-primary/80 ${
               isCurrent(item.href)
-                ? 'text-primary'
-                : 'text-muted-foreground'
+                ? 'underline underline-offset-4'
+                : ''
             }`}
           >
             {item.label}
