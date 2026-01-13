@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -42,10 +43,10 @@ export function MainNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`transition-colors hover:text-foreground/80 ${
+            className={`transition-colors hover:text-primary/80 ${
               isCurrent(item.href)
-                ? 'text-foreground'
-                : 'text-foreground/60'
+                ? 'text-primary'
+                : 'text-muted-foreground'
             }`}
           >
             {item.label}
