@@ -18,6 +18,13 @@ export const serviceCategories: ServiceCategory[] = [
       { name: 'Small knotless bum length', price: 30000 },
       { name: 'Medium knotless bum length', price: 25000 },
       { name: 'Large knotless bum length', price: 18000 },
+      { name: 'Goddess braid shoulder', price: 17000 },
+      { name: 'Goddess braid mid back', price: 20000 },
+      { name: 'Goddess braid waist', price: 23000 },
+      { name: 'Mermaid braids mid back', price: 17000 },
+      { name: 'Mermaid braid waist', price: 20000 },
+      { name: 'Small buss-down / boneless braid', price: 35000 },
+      { name: 'Medium buss-down / boneless braid', price: 30000 },
     ],
   },
   {
