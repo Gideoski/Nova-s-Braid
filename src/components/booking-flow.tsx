@@ -37,13 +37,10 @@ const bookingInfo = [
 
 const ADMIN_PHONE_CLEAN = '2349135368368';
 
-// This function now generates a UUID only on the client-side.
 const generateId = () => {
-    // This check ensures crypto is only used on the client-side.
     if (typeof window !== 'undefined' && self.crypto?.randomUUID) {
         return self.crypto.randomUUID();
     }
-    // Fallback for environments where crypto is not available (like server-side rendering in some contexts)
     return `id-${Math.random().toString(36).substring(2, 9)}`;
 };
 
@@ -56,11 +53,11 @@ export function BookingFlow() {
   const [time, setTime] = useState<string>('09:00');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedDay = useMemo(() => {
     if (!date) return -1;
     try {
-        // Use T00:00:00 to avoid timezone issues and get the correct local day.
         const d = new Date(`${date}T00:00:00`);
         return getDay(d);
     } catch {
@@ -68,32 +65,18 @@ export function BookingFlow() {
     }
   }, [date]);
 
-  const isWeekday = selectedDay >= 1 && selectedDay <= 5; // Monday to Friday
+  const isWeekday = selectedDay >= 1 && selectedDay <= 5;
   const weekdayTimes = ['09:00', '15:00'];
 
   useEffect(() => {
-    // This effect runs ONLY on the client, after the initial render.
-    // This safely avoids the hydration mismatch.
     setIsClient(true);
     const today = new Date();
     setDate(format(today, 'yyyy-MM-dd'));
-    
-    // Initialize attendees with a client-side generated ID
-    if (step === 'CHOOSE_TYPE' && attendees.length === 0) {
-      // This is a placeholder, handleNextStep will overwrite this.
-    }
-    
-    // Reset time if it becomes invalid
-    if (isWeekday && !weekdayTimes.includes(time)) {
-        setTime('09:00');
-    }
-
-  }, []); // Only run once on mount
+  }, []);
 
   useEffect(() => {
-    // When the day type changes, reset the time if needed.
     if (isWeekday && !weekdayTimes.includes(time)) {
-      setTime('09:00');
+        setTime('09:00');
     }
   }, [isWeekday, time]);
   
@@ -127,14 +110,13 @@ export function BookingFlow() {
     }
 
     if (!appointments) {
-      setAvailability('available'); // Assume available if loading fails
+      setAvailability('available');
       return;
     }
 
     const isBooked = appointments.some(app => {
       if (!app.dateTime) return false;
       const bookedTime = (app.dateTime as Timestamp).toDate();
-      // Compare time values, ignoring milliseconds
       return Math.floor(bookedTime.getTime() / 1000) === Math.floor(selectedDateTime.getTime() / 1000);
     });
 
@@ -169,7 +151,7 @@ export function BookingFlow() {
         }
         break;
       case 'CONFIRM':
-        handleBooking();
+        // This case is now handled directly by the button's onClick
         break;
     }
   };
@@ -218,14 +200,17 @@ export function BookingFlow() {
   }
 
   const handleBooking = async () => {
-    if (!termsAccepted || !selectedDateTime || !firestore) return;
+    if (!termsAccepted || !selectedDateTime || !firestore || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
-        await addDoc(collection(firestore, 'appointments'), {
-            dateTime: Timestamp.fromDate(selectedDateTime),
-            attendees: attendees.map(({id, isGuest, ...rest}) => rest),
-            totalCost,
-        });
+        if(appointmentsRef){
+            await addDoc(appointmentsRef, {
+                dateTime: Timestamp.fromDate(selectedDateTime),
+                attendees: attendees.map(({id, isGuest, ...rest}) => rest),
+                totalCost,
+            });
+        }
 
         let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
         message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
@@ -245,6 +230,8 @@ export function BookingFlow() {
     } catch (error) {
         console.error("Error adding document: ", error);
         // You might want to show an error toast to the user here
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -459,21 +446,37 @@ export function BookingFlow() {
     }
   };
   
+  const getContinueButton = () => {
+    if (step === 'CONFIRM') {
+      return (
+        <Button onClick={handleBooking} disabled={!termsAccepted || isSubmitting}>
+          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Book Appointment
+        </Button>
+      );
+    }
+    
+    return (
+       <Button onClick={handleNextStep} disabled={ 
+            (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
+            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime))
+        }>
+           Continue <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+    )
+  }
+
   return (
     <div>
         {renderStep()}
         {step !== 'CHOOSE_TYPE' && (
             <div ref={bottomNavRef} className="flex justify-center gap-4 mt-8">
                 <Button variant="outline" onClick={handlePrevStep}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-                <Button onClick={handleNextStep} disabled={ 
-                    (step === 'CONFIRM' && !termsAccepted) || 
-                    (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
-                    (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime))
-                }>
-                   {step === 'CONFIRM' ? 'Book Appointment' : 'Continue'} <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                {getContinueButton()}
             </div>
         )}
     </div>
   );
 }
+
+    
