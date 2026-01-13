@@ -38,21 +38,21 @@
     },
     {
       "id": "gallery-1",
-      "description": "Woman with highlighted curly braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1665923148259-3340e61d3ff2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjdXJseSUyMGJyYWlkc3xlbnwwfHx8fDE3NjgyNTYzNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "curly braids"
+      "description": "A beautiful braided hairstyle.",
+      "imageUrl": "/images/gallery/braids image 4.jpeg",
+      "imageHint": "braided hairstyle"
     },
     {
       "id": "gallery-2",
-      "description": "Woman with long, thick, curly dark braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1664099160144-f6991681878d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjdXJseSUyMGJyYWlkc3xlbnwwfHx8fDE3NjgyNTYzNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "curly braids"
+      "description": "An elegant braided hairstyle.",
+      "imageUrl": "/images/gallery/braids image 8.jpeg",
+      "imageHint": "elegant braids"
     },
     {
       "id": "gallery-3",
-      "description": "Woman with simple, elegant braids.",
-      "imageUrl": "https://images.unsplash.com/photo-1760292305394-e94a855717a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzaW1wbGUlMjBicmFpZHN8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "simple braids"
+      "description": "A creative braided hairstyle.",
+      "imageUrl": "/images/gallery/braids image 2.jpeg",
+      "imageHint": "creative braids"
     }
   ]
 }
