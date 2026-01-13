@@ -76,7 +76,7 @@ export function BookingFlow() {
     if (isWeekday && !weekdayTimes.includes(time)) {
         setTime('09:00');
     }
-  }, [isWeekday, time]);
+  }, [isWeekday, time, weekdayTimes]);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -497,3 +497,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
