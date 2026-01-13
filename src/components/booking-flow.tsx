@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { serviceCategories, Service } from '@/lib/data';
+import { serviceCategories } from '@/lib/data';
+import { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
@@ -105,16 +106,25 @@ export function BookingFlow() {
       setAvailability(appointmentsLoading ? 'checking' : 'invalid');
       return;
     }
+    
+    setAvailability('checking');
 
-    const selectedTimestamp = selectedDateTime.getTime();
+    // Debounce to prevent flicker
+    const handler = setTimeout(() => {
+      const selectedTimestamp = selectedDateTime.getTime();
 
-    const isBooked = appointments.some(app => {
-      if (!app.dateTime) return false;
-      const bookedTimestamp = (app.dateTime as Timestamp).toDate().getTime();
-      return bookedTimestamp === selectedTimestamp;
-    });
+      const isBooked = appointments.some(app => {
+        if (!app.dateTime) return false;
+        // Compare epoch milliseconds
+        const bookedTimestamp = (app.dateTime as Timestamp).toDate().getTime();
+        return bookedTimestamp === selectedTimestamp;
+      });
 
-    setAvailability(isBooked ? 'unavailable' : 'available');
+      setAvailability(isBooked ? 'unavailable' : 'available');
+    }, 300);
+
+    return () => clearTimeout(handler);
+    
   }, [selectedDateTime, appointments, appointmentsLoading]);
 
   const totalCost = useMemo(() => {
@@ -143,6 +153,9 @@ export function BookingFlow() {
         if (attendees.every(a => a.name && a.phone)) {
             setStep('CONFIRM');
         }
+        break;
+      case 'CONFIRM':
+        handleBooking();
         break;
     }
   };
@@ -203,46 +216,47 @@ export function BookingFlow() {
   }
 
   const handleBooking = async () => {
-    if (!termsAccepted || !selectedDateTime || !firestore || isSubmitting) return;
+    if (!termsAccepted || !selectedDateTime || isSubmitting) return;
 
     setIsSubmitting(true);
     
-    try {
-        if(appointmentsRef){
-            const appointmentData = {
-                dateTime: Timestamp.fromDate(selectedDateTime),
-                attendees: attendees.map(({id, isGuest, ...rest}) => ({
-                    ...rest,
-                    services: rest.services.map(s => ({ name: s.name, price: s.price, quantity: s.quantity }))
-                })),
-                totalCost,
-            };
-            addDoc(appointmentsRef, appointmentData).catch(error => {
-                console.error("Error adding document in background: ", error);
-            });
-        }
-
-        let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
-        message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
-        message += `*Time:* ${time}\n\n`;
-
-        attendees.forEach((attendee, index) => {
-            message += `*${attendee.isGuest ? `Guest ${index + 1}` : 'Appointment For'}:*\n`;
-            message += `Name: ${attendee.name}\n`;
-            message += `Phone: ${attendee.phone}\n`;
-            message += `Services:\n${attendee.services.map(s => `  - ${s.name}${s.quantity > 1 ? ` (x${s.quantity})` : ''}`).join('\n')}\n\n`;
+    // The database operation is initiated but not awaited.
+    if (appointmentsRef && firestore) {
+        const appointmentData = {
+            dateTime: Timestamp.fromDate(selectedDateTime),
+            attendees: attendees.map(({id, isGuest, ...rest}) => ({
+                ...rest,
+                services: rest.services.map(s => ({ name: s.name, price: s.price, quantity: s.quantity }))
+            })),
+            totalCost,
+        };
+        addDoc(appointmentsRef, appointmentData).catch(error => {
+            // This will log any background error to the console without blocking the user.
+            console.error("Error adding document in background: ", error);
         });
-        
-        message += `*Total: ₦${totalCost.toLocaleString()}*\n`;
-        
-        const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-        
-    } catch (error) {
-        console.error("Error preparing booking message: ", error);
-    } finally {
-        setIsSubmitting(false);
     }
+
+    // Construct the WhatsApp message immediately.
+    let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
+    message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
+    message += `*Time:* ${time}\n\n`;
+
+    attendees.forEach((attendee, index) => {
+        message += `*${attendee.isGuest ? `Guest ${index + 1}` : 'Appointment For'}:*\n`;
+        message += `Name: ${attendee.name}\n`;
+        message += `Phone: ${attendee.phone}\n`;
+        message += `Services:\n${attendee.services.map(s => `  - ${s.name}${s.quantity > 1 ? ` (x${s.quantity})` : ''}`).join('\n')}\n\n`;
+    });
+    
+    message += `*Total: ₦${totalCost.toLocaleString()}*\n`;
+    
+    const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
+    
+    // Open the WhatsApp window.
+    window.open(whatsappUrl, '_blank');
+    
+    // The user has been redirected, we can stop the loading indicator.
+    setIsSubmitting(false);
   };
   
   const renderStep = () => {
@@ -298,9 +312,17 @@ export function BookingFlow() {
                                         const isSelected = !!attendee.services.find(s => s.name === service.name);
                                         const isExtension = category.id === 'extensions';
 
+                                        const handleCardClick = () => {
+                                            // Toggle service selection only for non-extension items
+                                            // or if an extension item is being selected for the first time.
+                                            if (!isExtension || !isSelected) {
+                                                toggleService(attendee.id, service);
+                                            }
+                                        };
+
                                         return (
-                                            <Card key={service.name} className={`flex flex-col cursor-pointer transition-all ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`} onClick={() => !isExtension && toggleService(attendee.id, service)}>
-                                                <div className="flex-grow" onClick={() => toggleService(attendee.id, service)}>
+                                            <Card key={service.name} className={`flex flex-col transition-all ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
+                                                <div className="flex-grow cursor-pointer" onClick={handleCardClick}>
                                                     <CardHeader>
                                                         <CardTitle className="text-base">{service.name}</CardTitle>
                                                         <CardDescription className="text-lg font-bold text-primary">₦{service.price.toLocaleString()}</CardDescription>
@@ -492,22 +514,14 @@ export function BookingFlow() {
   };
   
   const getContinueButton = () => {
-    if (step === 'CONFIRM') {
       return (
-        <Button onClick={handleBooking} disabled={!termsAccepted || isSubmitting}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Book Appointment
-        </Button>
-      );
-    }
-    
-    return (
        <Button onClick={handleNextStep} disabled={ 
             (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
             (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime || !!appointmentsError)) ||
-            (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone))
+            (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone)) ||
+            (step === 'CONFIRM' && (!termsAccepted || isSubmitting))
         }>
-           Continue <ChevronRight className="ml-2 h-4 w-4" />
+            {step === 'CONFIRM' ? (isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Booking...</> : 'Book Appointment') : <>Continue <ChevronRight className="ml-2 h-4 w-4" /></>}
         </Button>
     )
   }
@@ -524,5 +538,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
