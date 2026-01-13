@@ -340,7 +340,7 @@ export function BookingFlow() {
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    {[...Array(10).keys()].map(i => (
+                                                                    {[...Array(5).keys()].map(i => (
                                                                         <SelectItem key={i + 1} value={(i + 1).toString()}>{i + 1}</SelectItem>
                                                                     ))}
                                                                 </SelectContent>
@@ -514,16 +514,22 @@ export function BookingFlow() {
   };
   
   const getContinueButton = () => {
-      return (
-       <Button onClick={handleNextStep} disabled={ 
-            (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) || 
-            (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime || !!appointmentsError)) ||
-            (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone)) ||
-            (step === 'CONFIRM' && (!termsAccepted || isSubmitting))
-        }>
-            {step === 'CONFIRM' ? (isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Booking...</> : 'Book Appointment') : <>Continue <ChevronRight className="ml-2 h-4 w-4" /></>}
-        </Button>
-    )
+      const isConfirmStep = step === 'CONFIRM';
+      const isDisabled =
+        (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) ||
+        (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime || !!appointmentsError)) ||
+        (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone)) ||
+        (isConfirmStep && (!termsAccepted || isSubmitting));
+
+       return (
+         <Button onClick={isConfirmStep ? handleBooking : handleNextStep} disabled={isDisabled}>
+           {isConfirmStep ? (
+             isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Booking...</> : 'Book Appointment'
+           ) : (
+             <>Continue <ChevronRight className="ml-2 h-4 w-4" /></>
+           )}
+         </Button>
+       );
   }
 
   return (
@@ -538,3 +544,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
