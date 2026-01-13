@@ -1,3 +1,4 @@
+
 import type { ServiceCategory } from './types';
 
 export const serviceCategories: ServiceCategory[] = [
@@ -24,7 +25,7 @@ export const serviceCategories: ServiceCategory[] = [
     name: 'Twist',
     services: [
       { name: 'Natural twist', price: 5000 },
-      { name: 'Micro twist', price: 20000 },
+      { name: 'Micro twist shoulder', price: 20000 },
       { name: 'Mini twist', price: 12000 },
       { name: 'Island twist shoulder', price: 14000 },
       { name: 'Island twist mid-back', price: 18000 },
