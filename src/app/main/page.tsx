@@ -33,10 +33,10 @@ const services: Service[] = [
         image: PlaceHolderImages.find(img => img.id === 'service-cornrows')!
     },
     {
-        id: 'kids-braids',
-        name: 'Kids Braids',
+        id: 'twists',
+        name: 'Twists',
         description: 'Protective styles done with precision, care, and beauty.',
-        image: PlaceHolderImages.find(img => img.id === 'service-kids')!
+        image: PlaceHolderImages.find(img => img.id === 'service-twists')!
     },
 ]
 
