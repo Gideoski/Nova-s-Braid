@@ -26,9 +26,9 @@
     },
     {
       "id": "service-cornrows",
-      "description": "A woman from behind showing a cornrow hairstyle.",
-      "imageUrl": "https://images.unsplash.com/photo-1665144800025-6b56e1ab9052?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjb3Jucm93cyUyMGJhY2t8ZW58MHx8fHwxNzY4MjU3OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cornrows back"
+      "description": "A woman from behind showing a Fulani braid hairstyle.",
+      "imageUrl": "/images/gallery/fulani.jpeg",
+      "imageHint": "fulani braids"
     },
     {
       "id": "service-kids",

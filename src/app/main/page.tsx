@@ -27,8 +27,8 @@ const services: Service[] = [
         image: PlaceHolderImages.find(img => img.id === 'service-ponytail')!
     },
     {
-        id: 'cornrows',
-        name: 'Cornrows',
+        id: 'fulani-braids',
+        name: 'Fulani Braids',
         description: 'Protective styles done with precision, care, and beauty.',
         image: PlaceHolderImages.find(img => img.id === 'service-cornrows')!
     },
