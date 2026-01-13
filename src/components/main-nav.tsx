@@ -76,8 +76,8 @@ export function MainNav() {
                       href={item.href}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors ${
                         isCurrent(item.href)
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-accent text-primary'
+                          : 'text-primary hover:bg-accent'
                       }`}
                     >
                       <span>{item.label}</span>
