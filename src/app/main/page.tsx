@@ -52,8 +52,8 @@ export default function MainPage() {
       <section className="container mx-auto py-12 md:py-20">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="space-y-6 text-center md:text-left">
-            <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight text-primary">
-              Nova's Braid Game
+            <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight text-primary uppercase sparkle-text">
+              NOVA'S BRAID GAME
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground font-light">
               Where every braid is a masterpiece.
