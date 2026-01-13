@@ -19,12 +19,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
+interface SelectedService extends Service {
+    quantity: number;
+}
+
 interface Attendee {
   id: string;
   isGuest: boolean;
   name: string;
   phone: string;
-  services: Service[];
+  services: SelectedService[];
 }
 
 const bookingInfo = [
@@ -64,7 +68,6 @@ export function BookingFlow() {
 
   const selectedDay = useMemo(() => {
     if (!date) return -1;
-    // Using parseISO ensures the date is interpreted correctly as local time.
     const d = parseISO(date); 
     return getDay(d);
   }, [date]);
@@ -76,7 +79,7 @@ export function BookingFlow() {
     if (isWeekday && !weekdayTimes.includes(time)) {
         setTime('09:00');
     }
-  }, [isWeekday, time, weekdayTimes]);
+  }, [isWeekday, time]);
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
@@ -89,8 +92,6 @@ export function BookingFlow() {
   const selectedDateTime = useMemo(() => {
     if (!date || !time) return null;
     try {
-      // We parse the date and time as separate components to avoid timezone issues
-      // then combine them into a single Date object.
       const [year, month, day] = date.split('-').map(Number);
       const [hours, minutes] = time.split(':').map(Number);
       return new Date(year, month - 1, day, hours, minutes);
@@ -100,28 +101,15 @@ export function BookingFlow() {
   }, [date, time]);
 
   useEffect(() => {
-    if (!selectedDateTime) {
-      setAvailability('invalid');
+    if (!selectedDateTime || !appointments) {
+      setAvailability(appointmentsLoading ? 'checking' : 'invalid');
       return;
-    }
-
-    if (appointmentsLoading) {
-      setAvailability('checking');
-      return;
-    }
-
-    if (!appointments) {
-        // If appointments is null (could be due to an error or just no data), assume available for now.
-        // Error state is handled separately.
-        setAvailability('available');
-        return;
     }
 
     const selectedTimestamp = selectedDateTime.getTime();
 
     const isBooked = appointments.some(app => {
       if (!app.dateTime) return false;
-      // Compare timestamps directly for accuracy.
       const bookedTimestamp = (app.dateTime as Timestamp).toDate().getTime();
       return bookedTimestamp === selectedTimestamp;
     });
@@ -131,7 +119,7 @@ export function BookingFlow() {
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
-      return total + attendee.services.reduce((subTotal, service) => subTotal + service.price, 0);
+      return total + attendee.services.reduce((subTotal, s) => subTotal + s.price * s.quantity, 0);
     }, 0);
   }, [attendees]);
 
@@ -188,7 +176,7 @@ export function BookingFlow() {
         if (hasService) {
           return { ...a, services: a.services.filter(s => s.name !== service.name) };
         } else {
-          return { ...a, services: [...a.services, service] };
+          return { ...a, services: [...a.services, { ...service, quantity: 1 }] };
         }
       }
       return a;
@@ -198,6 +186,18 @@ export function BookingFlow() {
     }, 100);
   };
   
+  const updateServiceQuantity = (attendeeId: string, serviceName: string, quantity: number) => {
+    setAttendees(attendees.map(a => {
+      if (a.id === attendeeId) {
+        return {
+          ...a,
+          services: a.services.map(s => s.name === serviceName ? { ...s, quantity } : s)
+        };
+      }
+      return a;
+    }));
+  };
+
   const updateAttendeeInfo = (id: string, field: 'name' | 'phone', value: string) => {
       setAttendees(attendees.map(a => a.id === id ? {...a, [field]: value} : a));
   }
@@ -207,15 +207,17 @@ export function BookingFlow() {
 
     setIsSubmitting(true);
     
-    // Don't wait for the database write, redirect immediately.
     try {
         if(appointmentsRef){
-            addDoc(appointmentsRef, {
+            const appointmentData = {
                 dateTime: Timestamp.fromDate(selectedDateTime),
-                attendees: attendees.map(({id, isGuest, ...rest}) => rest),
+                attendees: attendees.map(({id, isGuest, ...rest}) => ({
+                    ...rest,
+                    services: rest.services.map(s => ({ name: s.name, price: s.price, quantity: s.quantity }))
+                })),
                 totalCost,
-            }).catch(error => {
-                // Log error in the background without blocking the user
+            };
+            addDoc(appointmentsRef, appointmentData).catch(error => {
                 console.error("Error adding document in background: ", error);
             });
         }
@@ -228,7 +230,7 @@ export function BookingFlow() {
             message += `*${attendee.isGuest ? `Guest ${index + 1}` : 'Appointment For'}:*\n`;
             message += `Name: ${attendee.name}\n`;
             message += `Phone: ${attendee.phone}\n`;
-            message += `Services: ${attendee.services.map(s => s.name).join(', ')}\n\n`;
+            message += `Services:\n${attendee.services.map(s => `  - ${s.name}${s.quantity > 1 ? ` (x${s.quantity})` : ''}`).join('\n')}\n\n`;
         });
         
         message += `*Total: ₦${totalCost.toLocaleString()}*\n`;
@@ -237,10 +239,8 @@ export function BookingFlow() {
         window.open(whatsappUrl, '_blank');
         
     } catch (error) {
-        // This will now only catch errors from the immediate synchronous code (like generating the message)
         console.error("Error preparing booking message: ", error);
     } finally {
-        // The user has been redirected, we can stop the loading indicator
         setIsSubmitting(false);
     }
   };
@@ -294,14 +294,41 @@ export function BookingFlow() {
                                 <div key={category.id}>
                                     <h3 className="font-bold mb-2">{category.name}</h3>
                                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {category.services.map(service => (
-                                        <Card key={service.name} className={`cursor-pointer transition-all ${attendee.services.find(s => s.name === service.name) ? 'border-primary ring-2 ring-primary' : ''}`} onClick={() => toggleService(attendee.id, service)}>
-                                            <CardHeader>
-                                                <CardTitle className="text-base">{service.name}</CardTitle>
-                                                <CardDescription className="text-lg font-bold text-primary">₦{service.price.toLocaleString()}</CardDescription>
-                                            </CardHeader>
-                                        </Card>
-                                    ))}
+                                    {category.services.map(service => {
+                                        const isSelected = !!attendee.services.find(s => s.name === service.name);
+                                        const isExtension = category.id === 'extensions';
+
+                                        return (
+                                            <Card key={service.name} className={`flex flex-col cursor-pointer transition-all ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`} onClick={() => !isExtension && toggleService(attendee.id, service)}>
+                                                <div className="flex-grow" onClick={() => toggleService(attendee.id, service)}>
+                                                    <CardHeader>
+                                                        <CardTitle className="text-base">{service.name}</CardTitle>
+                                                        <CardDescription className="text-lg font-bold text-primary">₦{service.price.toLocaleString()}</CardDescription>
+                                                    </CardHeader>
+                                                </div>
+                                                {isSelected && isExtension && (
+                                                    <CardContent className="pt-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <Label htmlFor={`quantity-${attendee.id}-${service.name}`} className="text-sm">Qty:</Label>
+                                                            <Select
+                                                                defaultValue="1"
+                                                                onValueChange={(value) => updateServiceQuantity(attendee.id, service.name, parseInt(value))}
+                                                            >
+                                                                <SelectTrigger id={`quantity-${attendee.id}-${service.name}`} className="w-20 h-8">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {[...Array(10).keys()].map(i => (
+                                                                        <SelectItem key={i + 1} value={(i + 1).toString()}>{i + 1}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </CardContent>
+                                                )}
+                                            </Card>
+                                        )
+                                    })}
                                     </div>
                                 </div>
                             ))}
@@ -435,7 +462,7 @@ export function BookingFlow() {
                                 <h4 className="font-semibold">{attendee.isGuest ? `Guest: ${attendee.name}` : attendee.name}</h4>
                                 <p className="text-sm text-muted-foreground">{attendee.phone}</p>
                                 <ul className="list-disc list-inside text-sm">
-                                    {attendee.services.map(s => <li key={s.name}>{s.name} - ₦{s.price.toLocaleString()}</li>)}
+                                    {attendee.services.map(s => <li key={s.name}>{s.name} {s.quantity > 1 ? `(x${s.quantity})` : ''} - ₦{(s.price * s.quantity).toLocaleString()}</li>)}
                                 </ul>
                             </div>
                         ))}

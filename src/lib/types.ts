@@ -1,6 +1,7 @@
 export interface Service {
   name: string;
   price: number;
+  quantity?: number;
 }
 
 export interface ServiceCategory {
@@ -8,3 +9,5 @@ export interface ServiceCategory {
   name: string;
   services: Service[];
 }
+
+    
