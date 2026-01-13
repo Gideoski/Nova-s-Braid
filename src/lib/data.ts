@@ -52,6 +52,13 @@ export const serviceCategories: ServiceCategory[] = [
       { name: 'All back with extension', price: 10000 },
     ],
   },
+    {
+    id: 'ponytail',
+    name: 'Ponytail',
+    services: [
+      { name: 'Ponytail', price: 10000 },
+    ],
+  },
   {
     id: 'french-curls',
     name: 'French Curls',

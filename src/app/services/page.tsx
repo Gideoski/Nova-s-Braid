@@ -19,7 +19,7 @@ export default function ServicesPage() {
       </div>
 
       <Tabs defaultValue={serviceCategories[0].id} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 mb-8">
           {serviceCategories.map((category) => (
             <TabsTrigger key={category.id} value={category.id}>
               {category.name}
