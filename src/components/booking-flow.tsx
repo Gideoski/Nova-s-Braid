@@ -6,17 +6,14 @@ import { serviceCategories } from '@/lib/data';
 import { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
 import { format, getDay, parseISO } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
-import { useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -88,49 +85,17 @@ export function BookingFlow() {
   
   const bottomNavRef = useRef<HTMLDivElement>(null);
 
-  const firestore = useFirestore();
-  const appointmentsRef = useMemo(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
-  const { data: appointments, loading: appointmentsLoading, error: appointmentsError } = useCollection(appointmentsRef);
-
-  const [availability, setAvailability] = useState<'checking' | 'available' | 'unavailable' | 'invalid'>('invalid');
-
   const selectedDateTime = useMemo(() => {
     if (!date || !time) return null;
     try {
-      // Robust, timezone-agnostic parsing.
       const [year, month, day] = date.split('-').map(Number);
       const [hour, minute] = time.split(':').map(Number);
-
-      // Date.UTC() creates a timezone-agnostic timestamp. The month is 0-indexed.
-      return new Date(Date.UTC(year, month - 1, day, hour, minute));
+      // Use local timezone as the booking is for a local business
+      return new Date(year, month - 1, day, hour, minute);
     } catch {
       return null;
     }
   }, [date, time]);
-
-  useEffect(() => {
-    if (!selectedDateTime || !appointments) {
-      setAvailability(appointmentsLoading ? 'checking' : 'invalid');
-      return;
-    }
-    
-    setAvailability('checking');
-
-    const handler = setTimeout(() => {
-      const selectedTimestamp = selectedDateTime.getTime();
-
-      const isBooked = appointments.some(app => {
-        if (!app.dateTime || !(app.dateTime instanceof Timestamp)) return false;
-        const bookedTimestamp = app.dateTime.toMillis();
-        return bookedTimestamp === selectedTimestamp;
-      });
-
-      setAvailability(isBooked ? 'unavailable' : 'available');
-    }, 300);
-
-    return () => clearTimeout(handler);
-    
-  }, [selectedDateTime, appointments, appointmentsLoading]);
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
@@ -150,7 +115,7 @@ export function BookingFlow() {
         }
         break;
       case 'SELECT_DATETIME':
-        if (selectedDateTime && availability === 'available' && !appointmentsError) {
+        if (selectedDateTime) {
             setStep('USER_INFO');
         }
         break;
@@ -225,20 +190,6 @@ export function BookingFlow() {
 
     setIsSubmitting(true);
     
-    if (appointmentsRef && firestore) {
-        const appointmentData = {
-            dateTime: Timestamp.fromDate(selectedDateTime),
-            attendees: attendees.map(({id, isGuest, ...rest}) => ({
-                ...rest,
-                services: rest.services.map(s => ({ name: s.name, price: s.price, quantity: s.quantity }))
-            })),
-            totalCost,
-        };
-        addDoc(appointmentsRef, appointmentData).catch(error => {
-            console.error("Error adding document in background: ", error);
-        });
-    }
-
     let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
     message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
     message += `*Time:* ${format(selectedDateTime, 'p')}\n\n`;
@@ -421,19 +372,8 @@ export function BookingFlow() {
                     )}
                   </div>
                    <div className="text-center p-2 rounded-md">
-                        {availability === 'checking' && <p className="text-sm text-muted-foreground flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking availability...</p>}
-                        {availability === 'available' && <p className="text-sm font-semibold text-green-600">This slot is available.</p>}
-                        {availability === 'unavailable' && <p className="text-sm font-semibold text-red-600">This slot is unavailable. Please pick another date or time.</p>}
-                        {availability === 'invalid' && <p className="text-sm text-amber-600">Please select a valid date and time.</p>}
-                        {appointmentsError && (
-                            <Alert variant="destructive" className="mt-4 text-left">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                    Could not check availability. Please try again later.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </div>
+                        <p className="text-sm text-muted-foreground">Availability will be confirmed via WhatsApp.</p>
+                   </div>
                 </CardContent>
               </Card>
             </div>
@@ -510,7 +450,7 @@ export function BookingFlow() {
       const isConfirmStep = step === 'CONFIRM';
       const isDisabled =
         (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) ||
-        (step === 'SELECT_DATETIME' && (availability !== 'available' || !selectedDateTime || !!appointmentsError)) ||
+        (step === 'SELECT_DATETIME' && !selectedDateTime) ||
         (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone)) ||
         (isConfirmStep && (!termsAccepted || isSubmitting));
 
@@ -537,3 +477,5 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    

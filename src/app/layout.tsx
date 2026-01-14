@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AppContent } from '@/components/app-content';
 
 
@@ -30,14 +29,14 @@ export default function RootLayout({
           defaultTheme="dark"
           disableTransitionOnChange
         >
-          <FirebaseClientProvider>
             <AppContent>
                 {children}
             </AppContent>
             <Toaster />
-          </FirebaseClientProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
+    
