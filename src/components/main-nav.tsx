@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -16,6 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useUser } from '@/firebase';
 
 const navItems = [
   { href: '/main', label: 'Home'},
@@ -23,11 +23,15 @@ const navItems = [
   { href: '/gallery', label: 'Gallery'},
   { href: '/contact', label: 'Contact'},
   { href: '/settings', label: 'Settings'},
-  { href: '/admin/appointments', label: 'Admin'},
+];
+
+const adminNavItems = [
+    { href: '/admin/appointments', label: 'Admin'},
 ];
 
 export function MainNav() {
   const pathname = usePathname();
+  const { user } = useUser();
 
   const isCurrent = (href: string) => {
     if (href === '/main') {
@@ -35,12 +39,15 @@ export function MainNav() {
     }
     return pathname.startsWith(href);
   };
+  
+  const allNavItems = user ? [...navItems, ...adminNavItems] : navItems;
+
 
   return (
     <>
     {/* Desktop Nav */}
     <nav className="hidden md:flex gap-6 text-lg font-medium">
-        {navItems.map((item) => (
+        {allNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -70,7 +77,7 @@ export function MainNav() {
           </SheetHeader>
           <div className="flex flex-col space-y-4 p-4">
             <nav className="flex flex-col space-y-2">
-              {[...navItems, { href: '/appointments', label: 'Book Appointment' }].map((item) => {
+              {[...allNavItems, { href: '/appointments', label: 'Book Appointment' }].map((item) => {
                 return (
                   <SheetClose asChild key={item.href}>
                     <Link

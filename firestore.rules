@@ -1,7 +1,7 @@
 
 rules_version = '2';
 
-// Version 1.1: Rules for Nova's Braid Game.
+// Version 1.2: Allow public read for booking, admin create/delete
 service cloud.firestore {
   match /databases/{database}/documents {
     
@@ -10,15 +10,14 @@ service cloud.firestore {
     }
 
     match /appointments/{appointmentId} {
-      // Public users can create appointments
+      // Anyone can create an appointment (book a slot)
       allow create: if true;
       
-      // Only authenticated users can read the full list or individual appointments
-      allow read, list: if isSignedIn();
+      // Anyone can read the appointment list to check for availability
+      allow read, list: if true;
       
-      // By default, disallow updates and deletes from clients.
-      // These should be handled with care, perhaps via an admin interface or cloud functions.
-      allow update, delete: if false;
+      // Only authenticated users (admins) can update or delete appointments
+      allow update, delete: if isSignedIn();
     }
   }
 }
