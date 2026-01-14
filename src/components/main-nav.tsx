@@ -23,6 +23,7 @@ const navItems = [
   { href: '/gallery', label: 'Gallery'},
   { href: '/contact', label: 'Contact'},
   { href: '/settings', label: 'Settings'},
+  { href: '/admin/appointments', label: 'Admin'},
 ];
 
 export function MainNav() {
