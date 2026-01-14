@@ -12,6 +12,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { FirestorePermissionError } from '../errors';
+import { errorEmitter } from '../error-emitter';
 
 interface UseCollectionOptions {
   query?: QueryConstraint[];
@@ -54,6 +55,7 @@ export const useCollection = <T extends DocumentData>(
                   path: q.path,
                   operation: 'list',
               });
+              errorEmitter.emit('permission-error', permissionError);
               setError(permissionError);
           } else {
               setError(err);
