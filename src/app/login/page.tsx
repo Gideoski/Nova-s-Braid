@@ -37,6 +37,7 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error(err);
       let errorMessage = 'An unknown error occurred. Please try again.';
+      // Handle common Firebase auth errors
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         errorMessage = 'Invalid email or password. Please try again.';
       }
