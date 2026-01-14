@@ -95,7 +95,8 @@ export function BookingFlow() {
     try {
       const [year, month, day] = date.split('-').map(Number);
       const [hours, minutes] = time.split(':').map(Number);
-      return new Date(year, month - 1, day, hours, minutes);
+      // Use UTC to avoid timezone issues during comparison
+      return new Date(Date.UTC(year, month - 1, day, hours, minutes));
     } catch {
       return null;
     }
@@ -111,12 +112,13 @@ export function BookingFlow() {
 
     // Debounce to prevent flicker
     const handler = setTimeout(() => {
+      // Get the UTC timestamp for the user's selection
       const selectedTimestamp = selectedDateTime.getTime();
 
       const isBooked = appointments.some(app => {
-        if (!app.dateTime) return false;
-        // Compare epoch milliseconds
-        const bookedTimestamp = (app.dateTime as Timestamp).toDate().getTime();
+        if (!app.dateTime || !(app.dateTime instanceof Timestamp)) return false;
+        // Compare epoch milliseconds directly (both are timezone-agnostic)
+        const bookedTimestamp = app.dateTime.toMillis();
         return bookedTimestamp === selectedTimestamp;
       });
 
@@ -313,15 +315,15 @@ export function BookingFlow() {
                                         const isExtension = category.id === 'extensions';
 
                                         return (
-                                            <Card key={service.name} className={`flex flex-col transition-all ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
-                                                <div className="flex-grow cursor-pointer" onClick={() => toggleService(attendee.id, service)}>
+                                            <Card key={service.name} onClick={() => toggleService(attendee.id, service)} className={`flex flex-col transition-all cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
+                                                <div className="flex-grow">
                                                     <CardHeader>
                                                         <CardTitle className="text-base">{service.name}</CardTitle>
                                                         <CardDescription className="text-lg font-bold text-primary">₦{service.price.toLocaleString()}</CardDescription>
                                                     </CardHeader>
                                                 </div>
                                                 {isSelected && isExtension && (
-                                                    <CardContent className="pt-0">
+                                                    <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center gap-2">
                                                             <Label htmlFor={`quantity-${attendee.id}-${service.name}`} className="text-sm">Qty:</Label>
                                                             <Select
@@ -332,7 +334,7 @@ export function BookingFlow() {
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    {[...Array(5).keys()].map(i => (
+                                                                    {[...Array(10).keys()].map(i => (
                                                                         <SelectItem key={i + 1} value={(i + 1).toString()}>{i + 1}</SelectItem>
                                                                     ))}
                                                                 </SelectContent>
