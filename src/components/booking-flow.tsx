@@ -93,10 +93,16 @@ export function BookingFlow() {
   const selectedDateTime = useMemo(() => {
     if (!date || !time) return null;
     try {
-      const [year, month, day] = date.split('-').map(Number);
-      const [hours, minutes] = time.split(':').map(Number);
-      // Use UTC to avoid timezone issues during comparison
-      return new Date(Date.UTC(year, month - 1, day, hours, minutes));
+      // Create date object from user's local timezone input
+      const localDate = new Date(`${date}T${time}:00`);
+      // Convert to a UTC Date object for consistent comparison
+      return new Date(Date.UTC(
+        localDate.getFullYear(),
+        localDate.getMonth(),
+        localDate.getDate(),
+        localDate.getHours(),
+        localDate.getMinutes()
+      ));
     } catch {
       return null;
     }
@@ -538,6 +544,8 @@ export function BookingFlow() {
     </div>
   );
 }
+
+    
 
     
 
