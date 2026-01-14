@@ -6,7 +6,7 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       // Anyone can read appointments to check for availability and create a new one.
       allow read, create: if true;
-      // No one can update or delete from the client.
+      // To protect appointment integrity, prevent updates or deletions from the client.
       allow update, delete: if false;
     }
   }
