@@ -1,2 +1,184 @@
+/**
+ * This ruleset enforces a security model for the Nova's Braid Game application,
+ * which balances public browsing with secure, user-specific data management.
+ *
+ * Core Philosophy:
+ * The security model allows unauthenticated users to browse public-facing data like
+ * services and available time slots. However, all actions that involve personal data
+ * or create bookings require user authentication. A strict user-ownership model is
+ * enforced for personal profiles, settings, and appointments, ensuring users can
+ * only access and manage their own information.
+ *
+ * Data Structure:
+ * The data is organized into several top-level collections: /services, /timeslots,
+ * /appointments, /feedback, and /users. User-specific configuration, like settings,
+ * is nested within the user's document path (e.g., /users/{userId}/settings/{settingId})
+ * to simplify ownership-based rules.
+ *
+ * Key Security Decisions:
+ * - Public Read-Only Collections: The '/services' and '/timeslots' collections are
+ *   publicly readable to allow for browsing, but writes are disabled pending the
+ *   implementation of an admin role.
+ * - User Data Isolation: All data under '/users/{userId}' is strictly controlled,
+ *   accessible only by the authenticated user matching the {userId}. Listing all
+ *   users is explicitly disallowed to protect user privacy.
+ * - Appointment Security: To prevent users from viewing each other's appointments,
+ *   the root '/appointments' collection cannot be listed. Users can only access their
+ *   own appointments via direct document reads or client-side queries that are
+ *   enforced by the rules.
+ * - Feedback Submissions: The '/feedback' collection is configured as a "write-once"
+ *   mailbox. Signed-in users can submit feedback, but cannot read, update, or delete
+ *   any entries (including their own) after submission.
+ *
+ * Denormalization for Authorization:
+ * Authorization is achieved through simple, performant checks. For nested user data
+ * (e.g., settings), ownership is derived from the document path. For shared data like
+ * appointments, an explicit 'customerId' field is denormalized onto each appointment
+ * document. This allows for a direct check ('resource.data.customerId == request.auth.uid')
+ * without requiring slow or costly 'get()' calls to other documents.
+ *
+ * Structural Segregation:
+ * The data model separates public data (/services) from private user-specific data
+ * (/users/{userId}). This clear separation allows for simpler, more secure rules,
+ * as permissions for an entire collection can be set without needing to inspect
+ * individual document fields for public/private flags.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
 
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership based on path.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
     
+    /**
+     * Checks if the document being accessed already exists.
+     * Crucial for update and delete operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Checks if the authenticated user is the owner of a document
+     * based on a 'customerId' field within the document's data.
+     */
+    function isDocOwner(doc) {
+      return isSignedIn() && request.auth.uid == doc.data.customerId;
+    }
+
+    /**
+     * Combines an ownership check (via 'customerId' field) with an existence check.
+     * Used for secure updates and deletes on appointments.
+     */
+    function isExistingDocOwner(doc) {
+      return isExistingDoc() && isDocOwner(doc);
+    }
+    
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Publicly readable catalog of braiding services.
+     * @path /services/{serviceId}
+     * @allow (get) Any user, signed in or not, can read a service.
+     * @deny (create) Any user attempting to create a new service.
+     * @principle Public read access for catalog data, with writes restricted.
+     */
+    match /services/{serviceId} {
+      allow get, list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'Service' entity is missing an 'ownerId' or 'adminId' field.
+      // These rules are locked down until an admin role or ownership field is added to the schema.
+      allow create, update, delete: if false; // TODO: Add admin validation once the schema is updated with an ownership/admin field.
+    }
+
+    /**
+     * @description Stores customer profiles, which correspond to authenticated users.
+     * @path /users/{userId}
+     * @allow (create) A new user can create their own profile document (e.g., during sign-up).
+     * @deny (create) A user cannot create a profile for another user's ID.
+     * @deny (list) No user can list all other users in the database.
+     * @principle Enforces self-creation and ownership of a user's own profile document.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDoc();
+    }
+    
+    /**
+     * @description Stores user-specific settings.
+     * @path /users/{userId}/settings/{settingId}
+     * @allow (create, update, get) A user can manage their own settings.
+     * @deny (get, list) A user cannot access another user's settings.
+     * @principle Restricts access to a user's own data tree using path-based ownership.
+     */
+    match /users/{userId}/settings/{settingId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * @description Publicly readable list of available time slots.
+     * @path /timeslots/{timeslotId}
+     * @allow (get, list) Any user can view available time slots to plan a booking.
+     * @deny (create, update) Any user attempting to modify time slots.
+     * @principle Public read access for booking availability, with writes restricted.
+     */
+    match /timeslots/{timeslotId} {
+      allow get, list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'TimeSlot' entity is missing an 'ownerId' or 'adminId' field.
+      // These rules are locked down until an admin role or ownership field is added to the schema.
+      allow create, update, delete: if false; // TODO: Add admin validation once the schema is updated with an ownership/admin field.
+    }
+
+    /**
+     * @description Stores all appointments. Access is controlled via a 'customerId' field.
+     * @path /appointments/{appointmentId}
+     * @allow (create) A signed-in user can create an appointment for themselves.
+     * @deny (get) A user cannot read another user's appointment details.
+     * @deny (list) No user can list all appointments in the system.
+     * @principle Enforces document ownership for all operations based on an internal field.
+     */
+    match /appointments/{appointmentId} {
+      allow get: if isDocOwner(resource);
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow update: if isExistingDocOwner(resource) && request.resource.data.customerId == resource.data.customerId;
+      allow delete: if isExistingDocOwner(resource);
+    }
+    
+    /**
+     * @description A write-only collection for users to submit feedback.
+     * @path /feedback/{feedbackId}
+     * @allow (create) Any signed-in user can submit feedback.
+     * @deny (get, list, update, delete) No one can read, change, or delete feedback after submission.
+     * @principle Creates a secure "drop box" for user submissions.
+     */
+    match /feedback/{feedbackId} {
+      allow get, list: if false;
+      allow create: if isSignedIn() && (request.resource.data.userId == null || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if false;
+    }
+  }
+}
