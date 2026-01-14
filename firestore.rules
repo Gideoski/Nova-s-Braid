@@ -3,18 +3,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     match /appointments/{appointmentId} {
       // Anyone can create an appointment (book a slot)
       allow create: if true;
-      
+
       // Anyone can read the appointment list to check for availability
       allow get, list: if true;
-      
+
       // No one should be able to update or delete appointments from the client
       allow update, delete: if false;
     }
