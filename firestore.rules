@@ -1,6 +1,7 @@
 
 rules_version = '2';
 
+// Version 1.1: Rules for Nova's Braid Game.
 service cloud.firestore {
   match /databases/{database}/documents {
     
