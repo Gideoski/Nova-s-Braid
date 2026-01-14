@@ -46,7 +46,7 @@
     }
   },
   "auth": {
-    "providers": ["EmailPassword"]
+    "providers": []
   },
   "firestore": {
     "/appointments/{appointmentId}": {

@@ -15,7 +15,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useUser } from '@/firebase';
 
 const navItems = [
   { href: '/main', label: 'Home'},
@@ -25,13 +24,8 @@ const navItems = [
   { href: '/settings', label: 'Settings'},
 ];
 
-const adminNavItems = [
-    { href: '/admin/appointments', label: 'Admin'},
-];
-
 export function MainNav() {
   const pathname = usePathname();
-  const { user } = useUser();
 
   const isCurrent = (href: string) => {
     if (href === '/main') {
@@ -40,9 +34,6 @@ export function MainNav() {
     return pathname.startsWith(href);
   };
   
-  const allNavItems = user ? [...navItems, ...adminNavItems] : navItems;
-
-
   return (
     <>
     {/* Desktop Nav */}

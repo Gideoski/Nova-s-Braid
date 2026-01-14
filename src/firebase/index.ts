@@ -7,7 +7,6 @@ import { firebaseConfig } from './config';
 import { FirebaseProvider, useFirebase, useFirebaseApp, useFirestore, useAuth } from './provider';
 import { useCollection } from './firestore/use-collection';
 import { useDoc } from './firestore/use-doc';
-import { useUser } from './auth/use-user';
 
 export type FirebaseInstances = {
   firebaseApp: FirebaseApp;
@@ -37,7 +36,6 @@ export {
   FirebaseProvider,
   useCollection,
   useDoc,
-  useUser,
   useFirebase,
   useFirebaseApp,
   useFirestore,

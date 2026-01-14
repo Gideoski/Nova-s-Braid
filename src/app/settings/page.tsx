@@ -4,37 +4,10 @@ import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Moon, Sun, LogOut } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
-import { Button } from '@/components/ui/button';
-import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
+import { Moon, Sun } from 'lucide-react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const auth = useAuth();
-  const { user } = useUser();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Signed Out',
-        description: 'You have been successfully signed out.',
-      });
-      router.push('/login');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Sign Out Failed',
-        description: 'There was an error signing out. Please try again.',
-      });
-    }
-  };
-
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
@@ -75,23 +48,6 @@ export default function SettingsPage() {
               </RadioGroup>
             </CardContent>
           </Card>
-
-          {user && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Account</CardTitle>
-                <CardDescription>
-                  Manage your account settings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>
