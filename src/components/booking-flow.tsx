@@ -69,8 +69,12 @@ export function BookingFlow() {
 
   const selectedDay = useMemo(() => {
     if (!date) return -1;
-    const d = parseISO(date); 
-    return getDay(d);
+    try {
+        const d = parseISO(date); 
+        return getDay(d);
+    } catch {
+        return -1;
+    }
   }, [date]);
 
   const isWeekday = selectedDay >= 1 && selectedDay <= 5;
@@ -93,16 +97,12 @@ export function BookingFlow() {
   const selectedDateTime = useMemo(() => {
     if (!date || !time) return null;
     try {
-      // Create date object from user's local timezone input
-      const localDate = new Date(`${date}T${time}:00`);
-      // Convert to a UTC Date object for consistent comparison
-      return new Date(Date.UTC(
-        localDate.getFullYear(),
-        localDate.getMonth(),
-        localDate.getDate(),
-        localDate.getHours(),
-        localDate.getMinutes()
-      ));
+      // Robust, timezone-agnostic parsing.
+      const [year, month, day] = date.split('-').map(Number);
+      const [hour, minute] = time.split(':').map(Number);
+
+      // Date.UTC() creates a timezone-agnostic timestamp. The month is 0-indexed.
+      return new Date(Date.UTC(year, month - 1, day, hour, minute));
     } catch {
       return null;
     }
@@ -116,14 +116,11 @@ export function BookingFlow() {
     
     setAvailability('checking');
 
-    // Debounce to prevent flicker
     const handler = setTimeout(() => {
-      // Get the UTC timestamp for the user's selection
       const selectedTimestamp = selectedDateTime.getTime();
 
       const isBooked = appointments.some(app => {
         if (!app.dateTime || !(app.dateTime instanceof Timestamp)) return false;
-        // Compare epoch milliseconds directly (both are timezone-agnostic)
         const bookedTimestamp = app.dateTime.toMillis();
         return bookedTimestamp === selectedTimestamp;
       });
@@ -228,7 +225,6 @@ export function BookingFlow() {
 
     setIsSubmitting(true);
     
-    // The database operation is initiated but not awaited.
     if (appointmentsRef && firestore) {
         const appointmentData = {
             dateTime: Timestamp.fromDate(selectedDateTime),
@@ -239,15 +235,13 @@ export function BookingFlow() {
             totalCost,
         };
         addDoc(appointmentsRef, appointmentData).catch(error => {
-            // This will log any background error to the console without blocking the user.
             console.error("Error adding document in background: ", error);
         });
     }
 
-    // Construct the WhatsApp message immediately.
     let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
     message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
-    message += `*Time:* ${time}\n\n`;
+    message += `*Time:* ${format(selectedDateTime, 'p')}\n\n`;
 
     attendees.forEach((attendee, index) => {
         message += `*${attendee.isGuest ? `Guest ${index + 1}` : 'Appointment For'}:*\n`;
@@ -260,10 +254,8 @@ export function BookingFlow() {
     
     const whatsappUrl = `https://wa.me/${ADMIN_PHONE_CLEAN}?text=${encodeURIComponent(message)}`;
     
-    // Open the WhatsApp window.
     window.open(whatsappUrl, '_blank');
     
-    // The user has been redirected, we can stop the loading indicator.
     setIsSubmitting(false);
   };
   
@@ -471,13 +463,14 @@ export function BookingFlow() {
         );
 
       case 'CONFIRM':
+        if (!selectedDateTime) return null; // Should not happen if logic is correct
         return (
             <div className="max-w-2xl mx-auto space-y-6">
                 <Card>
                     <CardHeader><CardTitle>Confirm Your Appointment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{selectedDateTime ? format(selectedDateTime, 'PPP') : 'Invalid Date'}</span></div>
-                        <div className="flex justify-between"><span className="font-semibold">Time:</span> <span>{time}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Date:</span> <span>{format(selectedDateTime, 'PPP')}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Time:</span> <span>{format(selectedDateTime, 'p')}</span></div>
                         <Separator />
                         {attendees.map((attendee) => (
                             <div key={attendee.id} className="space-y-2">
@@ -544,9 +537,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    
-
-    
-
-    
