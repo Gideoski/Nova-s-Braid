@@ -1,24 +1,29 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useUser } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ServerCrash } from 'lucide-react';
+import { Loader2, ServerCrash, CalendarOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function AdminAppointmentsPage() {
   const firestore = useFirestore();
-  const appointmentsRef = useMemo(() => firestore ? collection(firestore, 'appointments') : null, [firestore]);
-  const { data: appointments, loading, error } = useCollection(appointmentsRef);
+  const { user } = useUser();
 
-  const sortedAppointments = useMemo(() => {
-    if (!appointments) return [];
-    // Sort by most recent date first
-    return [...appointments].sort((a, b) => b.dateTime.toMillis() - a.dateTime.toMillis());
-  }, [appointments]);
+  const appointmentsRef = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'appointments');
+  }, [firestore]);
+  
+  const appointmentsQuery = useMemo(() => {
+      if (!appointmentsRef) return null;
+      return query(appointmentsRef, orderBy('dateTime', 'desc'));
+  }, [appointmentsRef]);
+
+  const { data: appointments, loading, error } = useCollection(appointmentsQuery);
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
@@ -62,27 +67,28 @@ export default function AdminAppointmentsPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {!loading && !error && sortedAppointments.length === 0 && (
+                {!loading && !error && (!appointments || appointments.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-12">
-                      <p className="text-muted-foreground">No appointments have been booked yet.</p>
+                      <CalendarOff className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <p className="mt-2 text-muted-foreground">No appointments have been booked yet.</p>
                     </TableCell>
                   </TableRow>
                 )}
-                {!loading && sortedAppointments.map((app: any) => (
+                {!loading && appointments && appointments.map((app: any) => (
                   <TableRow key={app.id}>
-                    <TableCell className="font-medium">{format(app.dateTime.toDate(), 'PPP p')}</TableCell>
+                    <TableCell className="font-medium">{app.dateTime ? format(app.dateTime.toDate(), 'PPP p') : 'Invalid Date'}</TableCell>
                     <TableCell>
-                      {app.attendees.map((a: any) => a.name).join(', ')}
+                      {app.attendees?.map((a: any) => a.name).join(', ') ?? 'N/A'}
                     </TableCell>
                     <TableCell>
                       <ul className="list-disc list-inside">
-                        {app.attendees.flatMap((a: any) => a.services.map((s: any, i: number) => (
+                        {app.attendees?.flatMap((a: any) => a.services.map((s: any, i: number) => (
                           <li key={`${a.name}-${s.name}-${i}`}>{s.name}</li>
                         )))}
                       </ul>
                     </TableCell>
-                    <TableCell className="text-right font-mono">₦{app.totalCost.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-mono">₦{app.totalCost?.toLocaleString() ?? '0'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

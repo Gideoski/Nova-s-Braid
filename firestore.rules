@@ -3,11 +3,21 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    // Allow public read and write access to the appointments collection.
-    // This is necessary for the booking flow to work without user authentication.
     match /appointments/{appointmentId} {
-      allow read, write: if true;
+      // Public users can create appointments
+      allow create: if true;
+      
+      // Only authenticated users can read the full list or individual appointments
+      allow read, list: if isSignedIn();
+      
+      // By default, disallow updates and deletes from clients.
+      // These should be handled with care, perhaps via an admin interface or cloud functions.
+      allow update, delete: if false;
     }
   }
 }
