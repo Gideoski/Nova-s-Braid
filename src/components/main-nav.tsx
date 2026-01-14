@@ -47,7 +47,7 @@ export function MainNav() {
     <>
     {/* Desktop Nav */}
     <nav className="hidden md:flex gap-6 text-lg font-medium">
-        {allNavItems.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -77,7 +77,7 @@ export function MainNav() {
           </SheetHeader>
           <div className="flex flex-col space-y-4 p-4">
             <nav className="flex flex-col space-y-2">
-              {[...allNavItems, { href: '/appointments', label: 'Book Appointment' }].map((item) => {
+              {[...navItems, { href: '/appointments', label: 'Book Appointment' }].map((item) => {
                 return (
                   <SheetClose asChild key={item.href}>
                     <Link
