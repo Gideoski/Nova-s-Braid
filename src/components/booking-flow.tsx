@@ -3,17 +3,19 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { serviceCategories } from '@/lib/data';
-import { Service } from '@/lib/types';
+import { BookedAppointment, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2 } from 'lucide-react';
-import { format, getDay, parseISO } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { format, getDay, parseISO, isEqual } from 'date-fns';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Checkbox } from './ui/checkbox';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useCollection, useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 type Step = 'CHOOSE_TYPE' | 'SELECT_SERVICES' | 'SELECT_DATETIME' | 'USER_INFO' | 'CONFIRM';
 
@@ -57,6 +59,15 @@ export function BookingFlow() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const firestore = useFirestore();
+
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'appointments');
+  }, [firestore]);
+
+  const { data: existingAppointments, isLoading: isLoadingAppointments, error: appointmentsError } = useCollection<BookedAppointment>(appointmentsQuery);
 
   useEffect(() => {
     setIsClient(true);
@@ -90,12 +101,18 @@ export function BookingFlow() {
     try {
       const [year, month, day] = date.split('-').map(Number);
       const [hour, minute] = time.split(':').map(Number);
-      // Use local timezone as the booking is for a local business
       return new Date(year, month - 1, day, hour, minute);
     } catch {
       return null;
     }
   }, [date, time]);
+
+  const isSlotAvailable = useMemo(() => {
+    if (!selectedDateTime || !existingAppointments) return true; // Assume available until data loads
+    const selectedTimeISO = selectedDateTime.toISOString();
+    return !existingAppointments.some(app => isEqual(parseISO(app.dateTime), selectedDateTime));
+  }, [selectedDateTime, existingAppointments]);
+
 
   const totalCost = useMemo(() => {
     return attendees.reduce((total, attendee) => {
@@ -115,7 +132,7 @@ export function BookingFlow() {
         }
         break;
       case 'SELECT_DATETIME':
-        if (selectedDateTime) {
+        if (selectedDateTime && isSlotAvailable) {
             setStep('USER_INFO');
         }
         break;
@@ -186,10 +203,22 @@ export function BookingFlow() {
   }
 
   const handleBooking = async () => {
-    if (!termsAccepted || !selectedDateTime || isSubmitting) return;
+    if (!termsAccepted || !selectedDateTime || isSubmitting || !firestore || !appointmentsQuery) return;
 
     setIsSubmitting(true);
     
+    const newAppointment: BookedAppointment = {
+        dateTime: selectedDateTime.toISOString(),
+        totalCost: totalCost,
+        attendees: attendees.map(a => ({
+            name: a.name,
+            phone: a.phone,
+            services: a.services.map(s => ({ name: s.name, quantity: s.quantity, price: s.price }))
+        }))
+    };
+
+    addDocumentNonBlocking(appointmentsQuery, newAppointment);
+
     let message = `Hello NOVA'S BRAID GAME👋\nI'd like to book an appointment.\n\n`;
     message += `*Date:* ${format(selectedDateTime, 'PPP')}\n`;
     message += `*Time:* ${format(selectedDateTime, 'p')}\n\n`;
@@ -208,6 +237,43 @@ export function BookingFlow() {
     window.open(whatsappUrl, '_blank');
     
     setIsSubmitting(false);
+  };
+
+  const renderAvailability = () => {
+    if (isLoadingAppointments) {
+      return (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground p-2 rounded-md bg-accent">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Checking availability...</span>
+        </div>
+      );
+    }
+    if (appointmentsError) {
+      return (
+        <div className="flex items-center justify-center gap-2 text-sm text-destructive-foreground p-2 rounded-md bg-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <span>Could not check availability. Pls try again.</span>
+        </div>
+      );
+    }
+    if (selectedDateTime) {
+      if (isSlotAvailable) {
+        return (
+          <div className="flex items-center justify-center gap-2 text-sm text-green-600 p-2 rounded-md bg-green-100 dark:bg-green-900/30 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Slot is available!</span>
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex items-center justify-center gap-2 text-sm text-red-600 p-2 rounded-md bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+            <XCircle className="h-4 w-4" />
+            <span>Slot is unavailable. Please choose another time.</span>
+          </div>
+        );
+      }
+    }
+    return <div className="text-center p-2 rounded-md"><p className="text-sm text-muted-foreground">Select a date and time to check availability.</p></div>;
   };
   
   const renderStep = () => {
@@ -371,9 +437,7 @@ export function BookingFlow() {
                         />
                     )}
                   </div>
-                   <div className="text-center p-2 rounded-md">
-                        <p className="text-sm text-muted-foreground">Availability will be confirmed via WhatsApp.</p>
-                   </div>
+                  {renderAvailability()}
                 </CardContent>
               </Card>
             </div>
@@ -450,7 +514,7 @@ export function BookingFlow() {
       const isConfirmStep = step === 'CONFIRM';
       const isDisabled =
         (step === 'SELECT_SERVICES' && attendees.every(a => a.services.length === 0)) ||
-        (step === 'SELECT_DATETIME' && !selectedDateTime) ||
+        (step === 'SELECT_DATETIME' && (!selectedDateTime || !isSlotAvailable || isLoadingAppointments)) ||
         (step === 'USER_INFO' && attendees.some(a => !a.name || !a.phone)) ||
         (isConfirmStep && (!termsAccepted || isSubmitting));
 
@@ -477,5 +541,3 @@ export function BookingFlow() {
     </div>
   );
 }
-
-    

@@ -10,4 +10,17 @@ export interface ServiceCategory {
   services: Service[];
 }
 
-    
+export interface BookedAppointment {
+    id?: string;
+    dateTime: string;
+    totalCost: number;
+    attendees: {
+        name: string;
+        phone: string;
+        services: {
+            name: string;
+            quantity: number;
+            price: number;
+        }[];
+    }[];
+}

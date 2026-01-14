@@ -1,279 +1,59 @@
 {
   "entities": {
-    "Service": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Service",
-      "type": "object",
-      "description": "Represents a braiding service offered by Nova's Braid Game.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the service."
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the service (e.g., Knotless, Twist, Fulani Braids, French Curls, Extra)."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the service (e.g., Small knotless shoulder)."
-        },
-        "price": {
-          "type": "number",
-          "description": "Price of the service in NAIRA."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the service (e.g., details about the style, length, etc.)."
-        }
-      },
-      "required": [
-        "id",
-        "category",
-        "name",
-        "price"
-      ]
-    },
     "Appointment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Appointment",
       "type": "object",
       "description": "Represents a booked appointment for a braiding service.",
       "properties": {
-        "id": {
+        "dateTime": {
           "type": "string",
-          "description": "Unique identifier for the appointment."
-        },
-        "customerId": {
-          "type": "string",
-          "description": "Reference to the Customer who booked the appointment. (Relationship: Customer 1:N Appointment)"
-        },
-        "serviceId": {
-          "type": "string",
-          "description": "Reference to the Service that is booked. (Relationship: Service 1:N Appointment)"
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Start time of the appointment.",
+          "description": "Start date and time of the appointment in ISO format.",
           "format": "date-time"
         },
-        "endTime": {
-          "type": "string",
-          "description": "End time of the appointment.",
-          "format": "date-time"
+        "totalCost": {
+            "type": "number",
+            "description": "The total cost of the appointment."
         },
-        "status": {
-          "type": "string",
-          "description": "Status of the appointment (e.g., scheduled, completed, cancelled)."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Any notes related to the appointment."
+        "attendees": {
+            "type": "array",
+            "description": "List of people attending the appointment.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "phone": { "type": "string" },
+                    "services": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "quantity": { "type": "number" },
+                                "price": { "type": "number" }
+                            },
+                            "required": ["name", "quantity", "price"]
+                        }
+                    }
+                },
+                "required": ["name", "phone", "services"]
+            }
         }
       },
       "required": [
-        "id",
-        "customerId",
-        "serviceId",
-        "startTime",
-        "endTime",
-        "status"
-      ]
-    },
-    "Customer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Customer",
-      "type": "object",
-      "description": "Represents a customer who books appointments.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the customer."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the customer."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "Phone number of the customer."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the customer.",
-          "format": "email"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "phoneNumber"
-      ]
-    },
-    "TimeSlot": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "TimeSlot",
-      "type": "object",
-      "description": "Represents an available time slot for appointments. This allows for checking slot availability.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the time slot."
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Start time of the time slot.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "End time of the time slot.",
-          "format": "date-time"
-        },
-        "isBooked": {
-          "type": "boolean",
-          "description": "Indicates whether the time slot is booked or available."
-        }
-      },
-      "required": [
-        "id",
-        "startTime",
-        "endTime",
-        "isBooked"
-      ]
-    },
-    "Settings": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Settings",
-      "type": "object",
-      "description": "Represents user-specific settings like theme preferences.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the settings record."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User associated with these settings."
-        },
-        "theme": {
-          "type": "string",
-          "description": "Preferred theme (e.g., light, dark, system)."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "theme"
-      ]
-    },
-    "Feedback": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Feedback",
-      "type": "object",
-      "description": "Represents user feedback submitted through the website.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the feedback entry."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User submitting the feedback (can be null if submitted anonymously)."
-        },
-        "comment": {
-          "type": "string",
-          "description": "The feedback text provided by the user."
-        },
-        "submittedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the feedback was submitted.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "comment",
-        "submittedAt"
+        "dateTime",
+        "attendees",
+        "totalCost"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/services/{serviceId}",
-        "definition": {
-          "entityName": "Service",
-          "schema": {
-            "$ref": "#/backend/entities/Service"
-          },
-          "description": "Stores information about braiding services offered.  Each document represents a specific service.",
-          "params": [
-            {
-              "name": "serviceId",
-              "description": "The unique identifier of the service."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "Customer",
-          "schema": {
-            "$ref": "#/backend/entities/Customer"
-          },
-          "description": "Stores customer profiles.  Each document represents a customer.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the customer."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/settings/{settingId}",
-        "definition": {
-          "entityName": "Settings",
-          "schema": {
-            "$ref": "#/backend/entities/Settings"
-          },
-          "description": "Stores user-specific settings. Path-based ownership ensures only the user can access their own settings.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "settingId",
-              "description": "The unique identifier for the settings record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/timeslots/{timeslotId}",
-        "definition": {
-          "entityName": "TimeSlot",
-          "schema": {
-            "$ref": "#/backend/entities/TimeSlot"
-          },
-          "description": "Stores available time slots for appointments. Used to check slot availability.",
-          "params": [
-            {
-              "name": "timeslotId",
-              "description": "The unique identifier of the time slot."
-            }
-          ]
-        }
-      },
       {
         "path": "/appointments/{appointmentId}",
         "definition": {
@@ -281,7 +61,7 @@
           "schema": {
             "$ref": "#/backend/entities/Appointment"
           },
-          "description": "Stores appointment information. Includes customerId for associating appointments with users.",
+          "description": "Stores all booked appointments. Used for checking slot availability.",
           "params": [
             {
               "name": "appointmentId",
@@ -289,24 +69,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/feedback/{feedbackId}",
-        "definition": {
-          "entityName": "Feedback",
-          "schema": {
-            "$ref": "#/backend/entities/Feedback"
-          },
-          "description": "Stores user feedback submitted through the website.",
-          "params": [
-            {
-              "name": "feedbackId",
-              "description": "The unique identifier of the feedback entry."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to support Nova's Braid Game application, focusing on service catalog, booking, and user settings. The structure prioritizes Authorization Independence by avoiding hierarchical dependencies. It also supports the QAPs by segregating data with different access requirements into separate collections, especially for user-owned data and collaborative data.\n\n**Key Strategies Implemented**:\n\n*   **Authorization Independence via Denormalization**: While the current entities don't inherently require denormalization of authorization data (like membership maps), the structure is ready to adapt if collaborative features or service-specific permissions are introduced later. The path-based ownership for user-related data (/users/{userId}/settings) naturally provides authorization independence.\n*   **Structural Segregation (Homogeneous Security Posture)**: Different data types are stored in separate collections, such as `services`, `users`, `timeslots`, `appointments` and `feedback`. This ensures that security rules can be applied consistently to all documents within a collection.\n*   **Access Modeling (Standardization and Consistency)**: Path-based ownership is used for `users/{userId}/settings` to ensure user-specific settings are only accessible to the respective user. The `appointments` collection stores all appointment data but includes the `customerId` for querying appointments belonging to specific users.\n\n**Regarding slot availability checks:**\n\nThe current structure includes a `TimeSlot` entity. To implement the availability check, security rules on the `timeslots` collection should ensure that only authorized users can create or modify timeslots, and that appointment creation logic enforces the `isBooked` status. The application logic should prevent booking of `TimeSlot` entries where the value of `isBooked` is `true`. There needs to be appropriate database indexes created to make querying for available `TimeSlot` entities efficient. Transactions can be used to ensure atomic operations when booking a `TimeSlot` and updating the appointment status.\n\n**Manual Steps**\n\n*   Firebase indexes need to be created for each collection to improve the application's query performance.\n*   Firebase Functions and Triggers could be utilized to automate tasks such as sending the data to the admin whenever a customer books an appointment."
+    ]
   }
 }
