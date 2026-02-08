@@ -81,8 +81,8 @@ export const serviceCategories: ServiceCategory[] = [
     id: 'extensions',
     name: 'Extensions',
     services: [
-      { name: 'Big attachment', price: 6000 },
-      { name: 'Small attachment', price: 4500 },
+      { name: 'Big attachment', price: 6500 },
+      { name: 'Small attachment', price: 5000 },
       { name: 'Boho curls', price: 5000 },
       { name: 'French curls', price: 7000 },
     ],
