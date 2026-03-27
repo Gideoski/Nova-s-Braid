@@ -1,3 +1,4 @@
+
 export interface Service {
   name: string;
   price: number;
@@ -5,7 +6,7 @@ export interface Service {
 }
 
 export interface ServiceCategory {
-  id: string;
+  id?: string; // id from Firestore document
   name: string;
   services: Service[];
 }

@@ -1,13 +1,15 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /appointments/{appointmentId} {
-      // Anyone can read the list of appointments to check for availability
       allow get, list: if true;
-      // Anyone can create a new appointment
       allow create: if true;
-      // Nobody can update or delete appointments from the client-side
       allow update, delete: if false;
+    }
+    match /serviceCategories/{categoryId} {
+      allow get, list: if true;
+      allow write: if true; // Public for prototype admin access
     }
   }
 }

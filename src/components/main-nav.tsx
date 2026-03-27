@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/services', label: 'Services'},
   { href: '/gallery', label: 'Gallery'},
   { href: '/contact', label: 'Contact'},
+  { href: '/admin', label: 'Admin'},
   { href: '/settings', label: 'Settings'},
 ];
 

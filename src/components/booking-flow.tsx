@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { serviceCategories } from '@/lib/data';
-import { BookedAppointment, Service } from '@/lib/types';
+import { BookedAppointment, Service, ServiceCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Plus, Trash2, User, Users, Clock, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
@@ -67,7 +66,13 @@ export function BookingFlow() {
     return collection(firestore, 'appointments');
   }, [firestore]);
 
+  const servicesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'serviceCategories');
+  }, [firestore]);
+
   const { data: existingAppointments, isLoading: isLoadingAppointments, error: appointmentsError } = useCollection<BookedAppointment>(appointmentsQuery);
+  const { data: serviceCategories, isLoading: isLoadingServices } = useCollection<ServiceCategory>(servicesQuery);
 
   useEffect(() => {
     setIsClient(true);
@@ -108,8 +113,7 @@ export function BookingFlow() {
   }, [date, time]);
 
   const isSlotAvailable = useMemo(() => {
-    if (!selectedDateTime || !existingAppointments) return true; // Assume available until data loads
-    const selectedTimeISO = selectedDateTime.toISOString();
+    if (!selectedDateTime || !existingAppointments) return true;
     return !existingAppointments.some(app => isEqual(parseISO(app.dateTime), selectedDateTime));
   }, [selectedDateTime, existingAppointments]);
 
@@ -299,6 +303,14 @@ export function BookingFlow() {
         );
 
       case 'SELECT_SERVICES':
+        if (isLoadingServices) return <div className="text-center p-12"><Loader2 className="h-8 w-8 animate-spin mx-auto"/></div>;
+        if (!serviceCategories || serviceCategories.length === 0) return (
+            <div className="text-center p-12">
+                <p className="text-muted-foreground mb-4">No services are currently configured.</p>
+                <Button asChild><Link href="/admin">Configure Services in Admin</Link></Button>
+            </div>
+        );
+
         return (
           <div className="max-w-4xl mx-auto">
             <Accordion type="multiple" defaultValue={attendees.map(a => a.id)} className="w-full space-y-4">
@@ -327,7 +339,7 @@ export function BookingFlow() {
                                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {category.services.map(service => {
                                         const isSelected = !!attendee.services.find(s => s.name === service.name);
-                                        const isExtension = category.id === 'extensions';
+                                        const isExtension = category.id?.includes('extension');
 
                                         return (
                                             <Card key={service.name} onClick={() => toggleService(attendee.id, service)} className={`flex flex-col transition-all cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
@@ -467,7 +479,7 @@ export function BookingFlow() {
         );
 
       case 'CONFIRM':
-        if (!selectedDateTime) return null; // Should not happen if logic is correct
+        if (!selectedDateTime) return null;
         return (
             <div className="max-w-2xl mx-auto space-y-6">
                 <Card>

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Appointment": {
@@ -12,32 +13,32 @@
           "format": "date-time"
         },
         "totalCost": {
-            "type": "number",
-            "description": "The total cost of the appointment."
+          "type": "number",
+          "description": "The total cost of the appointment."
         },
         "attendees": {
-            "type": "array",
-            "description": "List of people attending the appointment.",
-            "items": {
-                "type": "object",
-                "properties": {
+          "type": "array",
+          "description": "List of people attending the appointment.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "phone": { "type": "string" },
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
                     "name": { "type": "string" },
-                    "phone": { "type": "string" },
-                    "services": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": { "type": "string" },
-                                "quantity": { "type": "number" },
-                                "price": { "type": "number" }
-                            },
-                            "required": ["name", "quantity", "price"]
-                        }
-                    }
-                },
-                "required": ["name", "phone", "services"]
-            }
+                    "quantity": { "type": "number" },
+                    "price": { "type": "number" }
+                  },
+                  "required": ["name", "quantity", "price"]
+                }
+              }
+            },
+            "required": ["name", "phone", "services"]
+          }
         }
       },
       "required": [
@@ -45,6 +46,27 @@
         "attendees",
         "totalCost"
       ]
+    },
+    "ServiceCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceCategory",
+      "type": "object",
+      "description": "Represents a category of services offered.",
+      "properties": {
+        "name": { "type": "string" },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "price": { "type": "number" }
+            },
+            "required": ["name", "price"]
+          }
+        }
+      },
+      "required": ["name", "services"]
     }
   },
   "auth": {
@@ -61,11 +83,27 @@
           "schema": {
             "$ref": "#/backend/entities/Appointment"
           },
-          "description": "Stores all booked appointments. Used for checking slot availability.",
+          "description": "Stores all booked appointments.",
           "params": [
             {
               "name": "appointmentId",
               "description": "The unique identifier of the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/serviceCategories/{categoryId}",
+        "definition": {
+          "entityName": "ServiceCategory",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceCategory"
+          },
+          "description": "Stores the dynamic list of service categories and their associated styles and prices.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier of the category."
             }
           ]
         }
