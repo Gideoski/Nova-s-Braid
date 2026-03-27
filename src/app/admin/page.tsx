@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState } from 'react';
-import { useCollection, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,12 @@ import { serviceCategories as initialData } from '@/lib/data';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
-  const categoriesRef = collection(firestore, 'serviceCategories');
+  
+  const categoriesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'serviceCategories');
+  }, [firestore]);
+
   const { data: categories, isLoading } = useCollection<ServiceCategory>(categoriesRef);
 
   const [newCategoryName, setNewCategoryName] = useState('');

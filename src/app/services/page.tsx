@@ -1,8 +1,7 @@
-
 'use client';
 
 import Link from 'next/link';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +15,12 @@ const formatPrice = (price: number) => {
 
 export default function ServicesPage() {
   const firestore = useFirestore();
-  const categoriesRef = collection(firestore, 'serviceCategories');
+  
+  const categoriesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'serviceCategories');
+  }, [firestore]);
+
   const { data: categories, isLoading } = useCollection<ServiceCategory>(categoriesRef);
 
   if (isLoading) {
