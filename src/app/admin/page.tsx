@@ -7,10 +7,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent } from 'lucide-react';
-import { ServiceCategory, Service } from '@/lib/types';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, AlertTriangle } from 'lucide-react';
+import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -114,15 +124,30 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground">Manage your services, prices, and styles.</p>
         </div>
         <div className="flex gap-2">
-           <Button variant="outline" onClick={handleSeedData}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Initialize Services
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Restore Defaults
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will reset all your services to the default list. Any custom changes or new categories you created will be kept, but the original styles will be restored/updated.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSeedData}>Restore</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
       <div className="grid gap-8">
-        {/* Add New Category */}
         <Card>
           <CardHeader>
             <CardTitle>Add New Category</CardTitle>
@@ -141,7 +166,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Categories List */}
         {categories?.map((category) => (
           <Card key={category.id} className="border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -158,18 +182,31 @@ export default function AdminDashboard() {
                   <Percent className="mr-2 h-4 w-4" />
                   Discount
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={() => deleteCategory(category.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Category?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{category.name}" and all its styles? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteCategory(category.id!)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardHeader>
             <CardContent>
               {discount?.catId === category.id && (
-                <div className="bg-accent p-4 rounded-lg mb-4 flex items-center gap-4">
+                <div className="bg-accent p-4 rounded-lg mb-4 flex items-center gap-4 border border-primary/30">
                   <Label>Discount Percentage (%):</Label>
                   <Input 
                     type="number" 
@@ -215,14 +252,26 @@ export default function AdminDashboard() {
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive"
-                            onClick={() => deleteStyle(category.id, idx)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Style?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Remove "{service.name}" from your service list?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteStyle(category.id!, idx)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </>
                     )}
