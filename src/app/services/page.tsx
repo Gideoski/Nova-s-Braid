@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServiceCategory } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Tag } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const formatPrice = (price: number) => {
   return `₦${price.toLocaleString()}`;
@@ -46,7 +48,7 @@ export default function ServicesPage() {
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl text-primary">Our Services</h1>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl text-primary uppercase">Our Services</h1>
         <p className="mt-4 text-lg text-muted-foreground">
           Find the perfect braiding style for you.
         </p>
@@ -66,12 +68,24 @@ export default function ServicesPage() {
           <TabsContent key={category.id} value={category.id!}>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {category.services.map((service) => (
-                <Card key={service.name} className="flex flex-col">
+                <Card key={service.name} className="flex flex-col relative overflow-hidden group">
+                  {service.originalPrice && service.originalPrice > service.price && (
+                    <div className="absolute top-4 right-[-35px] rotate-45 bg-primary text-primary-foreground text-[10px] font-bold py-1 w-[120px] text-center shadow-sm">
+                      {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
+                    </div>
+                  )}
                   <CardHeader>
-                    <CardTitle>{service.name}</CardTitle>
-                    <CardDescription className="text-2xl font-bold text-primary mt-2">
-                      {formatPrice(service.price)}
-                    </CardDescription>
+                    <CardTitle className="pr-12">{service.name}</CardTitle>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-3xl font-bold text-primary">
+                        {formatPrice(service.price)}
+                      </span>
+                      {service.originalPrice && service.originalPrice > service.price && (
+                        <span className="text-sm line-through text-muted-foreground/60 decoration-primary/40 decoration-1">
+                          {formatPrice(service.originalPrice)}
+                        </span>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent className="flex-grow">
                     {/* Descriptions could be added to the entity in backend.json if needed */}

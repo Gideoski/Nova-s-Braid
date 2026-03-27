@@ -60,7 +60,8 @@
             "type": "object",
             "properties": {
               "name": { "type": "string" },
-              "price": { "type": "number" }
+              "price": { "type": "number" },
+              "originalPrice": { "type": "number", "description": "The price before any discount was applied." }
             },
             "required": ["name", "price"]
           }

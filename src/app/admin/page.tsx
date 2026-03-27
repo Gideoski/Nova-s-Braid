@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
 import {
@@ -21,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -86,9 +88,10 @@ export default function AdminDashboard() {
     if (!category) return;
 
     const updatedServices = [...category.services];
+    // When manually editing, we reset the original price because the price is being redefined
     updatedServices[editingService.serviceIndex] = {
       name: editingService.name,
-      price: Number(editingService.price)
+      price: Number(editingService.price),
     };
 
     const catRef = doc(firestore, 'serviceCategories', editingService.catId);
@@ -104,14 +107,34 @@ export default function AdminDashboard() {
     const percentage = Number(discount.percentage);
     const multiplier = (100 - percentage) / 100;
 
-    const updatedServices = category.services.map(s => ({
-      ...s,
-      price: Math.round(s.price * multiplier)
-    }));
+    const updatedServices = category.services.map(s => {
+      const basePrice = s.originalPrice || s.price;
+      return {
+        ...s,
+        originalPrice: basePrice,
+        price: Math.round(basePrice * multiplier)
+      };
+    });
 
     const catRef = doc(firestore, 'serviceCategories', catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
     setDiscount(null);
+  };
+
+  const clearDiscount = (catId: string) => {
+    if (!firestore || !categories) return;
+    const category = categories.find(c => c.id === catId);
+    if (!category) return;
+
+    const updatedServices = category.services.map(s => ({
+      ...s,
+      price: s.originalPrice || s.price,
+      originalPrice: undefined
+    }));
+
+    const catRef = doc(firestore, 'serviceCategories', catId);
+    // Explicitly delete originalPrice fields by replacing the services array
+    setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
   };
 
   if (isLoading) return <div className="p-12 text-center">Loading dashboard...</div>;
@@ -207,6 +230,7 @@ export default function AdminDashboard() {
             <CardContent>
               {discount?.catId === category.id && (
                 <div className="bg-accent p-4 rounded-lg mb-4 flex items-center gap-4 border border-primary/30">
+                  <Tag className="h-5 w-5 text-primary" />
                   <Label>Discount Percentage (%):</Label>
                   <Input 
                     type="number" 
@@ -215,6 +239,7 @@ export default function AdminDashboard() {
                     onChange={e => setDiscount({ ...discount, percentage: e.target.value })}
                   />
                   <Button size="sm" onClick={() => applyDiscount(category.id)}>Apply</Button>
+                  <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id)}>Clear All Discounts</Button>
                   <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
                 </div>
               )}
@@ -240,9 +265,19 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       <>
-                        <div className="flex-1">
+                        <div className="flex-1 flex items-center gap-3">
                           <span className="font-medium">{service.name}</span>
-                          <span className="ml-4 text-primary font-bold">₦{service.price.toLocaleString()}</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-primary font-bold">₦{service.price.toLocaleString()}</span>
+                            {service.originalPrice && service.originalPrice > service.price && (
+                              <span className="text-xs line-through text-muted-foreground">₦{service.originalPrice.toLocaleString()}</span>
+                            )}
+                          </div>
+                          {service.originalPrice && service.originalPrice > service.price && (
+                            <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                              {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 

@@ -2,6 +2,7 @@
 export interface Service {
   name: string;
   price: number;
+  originalPrice?: number;
   quantity?: number;
 }
 
