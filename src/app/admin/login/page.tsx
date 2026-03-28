@@ -30,25 +30,46 @@ export default function AdminLoginPage() {
     }
   }, [user, isUserLoading, router]);
 
+  const getProfessionalErrorMessage = (error: any) => {
+    const code = error?.code || '';
+    
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'This email address is already registered in our administrative records.';
+      case 'auth/invalid-email':
+        return 'The email format provided is not recognized. Please verify and try again.';
+      case 'auth/weak-password':
+        return 'The provided password does not meet the minimum security requirements.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'The credentials provided are incorrect. Access denied.';
+      case 'auth/too-many-requests':
+        return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
+      case 'auth/network-request-failed':
+        return 'Connectivity issue detected. Please check your secure connection.';
+      default:
+        return 'An internal authentication error occurred. Please try again later.';
+    }
+  };
+
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Using non-blocking pattern with .then/.catch for professional feedback
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
-        // Redirect happens automatically via useEffect on useUser update
         toast({
           title: "Access Granted",
-          description: "Welcome back, Nova. Entering dashboard...",
+          description: "Welcome back. Entering secure dashboard...",
         });
       })
       .catch((error: any) => {
         setIsLoading(false);
         toast({
           variant: 'destructive',
-          title: 'Sign In Failed',
-          description: error.message || 'Check your credentials and try again.',
+          title: 'Authentication Failed',
+          description: getProfessionalErrorMessage(error),
         });
       });
   };
@@ -57,20 +78,19 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Using non-blocking pattern with .then/.catch
     createUserWithEmailAndPassword(auth, email, password)
       .then(() => {
         toast({
-          title: "Account Created",
-          description: "Admin access has been granted.",
+          title: "Account Provisioned",
+          description: "Administrative access has been successfully created.",
         });
       })
       .catch((error: any) => {
         setIsLoading(false);
         toast({
           variant: 'destructive',
-          title: 'Registration Failed',
-          description: error.message || 'Could not create admin account.',
+          title: 'Provisioning Failed',
+          description: getProfessionalErrorMessage(error),
         });
       });
   };
@@ -85,7 +105,6 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full" />
 
@@ -101,7 +120,7 @@ export default function AdminLoginPage() {
               Nova Admin
             </CardTitle>
             <CardDescription className="text-muted-foreground font-light text-base">
-              Secure access for the Braid Game Master.
+              Secure authentication for authorized personnel only.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -165,7 +184,7 @@ export default function AdminLoginPage() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">New Admin Email</Label>
+                    <Label htmlFor="signup-email">Registration Email</Label>
                     <Input 
                       id="signup-email" 
                       type="email" 
@@ -204,7 +223,7 @@ export default function AdminLoginPage() {
                   </div>
                   <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase tracking-[0.2em]" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                    Create Admin
+                    Request Access
                   </Button>
                 </form>
               </TabsContent>
@@ -213,12 +232,12 @@ export default function AdminLoginPage() {
           <CardFooter className="flex flex-col gap-3 py-6 bg-black/20">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold">
               <div className="h-px w-8 bg-primary/20" />
-              Restricted Area
+              Secure Protocol
               <div className="h-px w-8 bg-primary/20" />
             </div>
             <p className="text-[10px] text-muted-foreground text-center px-4 leading-relaxed">
-              Unauthorized access attempts are logged and reported.
-              Please ensure your connection is secure.
+              Unauthorized access attempts are monitored. 
+              Please ensure your connection is encrypted.
             </p>
           </CardFooter>
         </Card>
