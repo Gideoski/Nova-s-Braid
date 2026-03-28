@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff, AlertCircle } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
         return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
       case 'auth/network-request-failed':
       case 'unavailable':
-        return 'We are unable to reach the security server. Please check your internet connection and try again.';
+        return 'We are unable to reach the security server. This is often due to strict firewall rules or a poor internet connection.';
       default:
         return 'An internal authentication error occurred. Please try again later.';
     }
@@ -92,8 +92,7 @@ export default function AdminLoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      // Check if any users exist. If not, the first user is the super admin.
-      // We wrap this in a try/catch to ensure registration proceeds even if connectivity is spotty.
+      // Determine if this is the first user (Master Admin)
       let isFirstUser = false;
       try {
         const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
@@ -231,7 +230,7 @@ export default function AdminLoginPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 border border-primary/10 p-1">
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 border border-primary/10 p-1 h-12">
                 <TabsTrigger 
                   value="login"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all"

@@ -10,8 +10,8 @@ let firestoreInstance: Firestore | null = null;
 let authInstance: Auth | null = null;
 
 /**
- * Initializes Firebase services with forced long-polling to bypass
- * connectivity issues in restricted cloud environments.
+ * Initializes Firebase services with hardened settings for restricted environments.
+ * This is the most reliable way to prevent the "10-second timeout" error in cloud workspaces.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -21,19 +21,18 @@ export function initializeFirebase() {
 
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
-      // On the client, we MUST use initializeFirestore to force long polling.
-      // This is the most reliable way to prevent the "10-second timeout" error.
       try {
+        // Force long polling and disable fetch streams to bypass restrictive proxies/firewalls
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
-          useFetchStreams: false, // Further stabilize connection by disabling streams
+          useFetchStreams: false,
         });
       } catch (e) {
-        // If already initialized (common in hot-reload), get current instance
+        // Fallback for scenarios where Firestore is already initialized (e.g., hot-reload)
         firestoreInstance = getFirestore(appInstance);
       }
     } else {
-      // Server-side context
+      // Server-side initialization
       firestoreInstance = getFirestore(appInstance);
     }
   }
