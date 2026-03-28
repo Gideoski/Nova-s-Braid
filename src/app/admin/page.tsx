@@ -42,15 +42,20 @@ export default function AdminDashboard() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
+  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isAuthorized = isSuperAdmin || (userData && userData.approved);
+
   const categoriesRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user || !isAuthorized) return null;
     return collection(firestore, 'serviceCategories');
-  }, [firestore]);
+  }, [firestore, user, isAuthorized]);
 
   const adminsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // CRITICAL: Only attempt to list users if we are authenticated and authorized
+    // This prevents "Missing or insufficient permissions" errors on component mount
+    if (!firestore || !user || !isAuthorized) return null;
     return collection(firestore, 'users');
-  }, [firestore]);
+  }, [firestore, user, isAuthorized]);
 
   const { data: categories, isLoading: isDataLoading } = useCollection<ServiceCategory>(categoriesRef);
   const { data: adminUsers, isLoading: isAdminsLoading } = useCollection<any>(adminsRef);
@@ -68,13 +73,11 @@ export default function AdminDashboard() {
     }
 
     if (!isUserLoading && !isUserDataLoading && user) {
-      const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-      // Allow super admin regardless of DB status, but block others if not approved
       if (!isSuperAdmin && (!userData || !userData.approved)) {
         router.push('/admin/login');
       }
     }
-  }, [user, userData, isUserLoading, isUserDataLoading, router]);
+  }, [user, userData, isUserLoading, isUserDataLoading, router, isSuperAdmin]);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -176,9 +179,7 @@ export default function AdminDashboard() {
     setDiscount(null);
   };
 
-  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-
-  if (isUserLoading || (!isSuperAdmin && isUserDataLoading)) {
+  if (isUserLoading || (user && isUserDataLoading && !isSuperAdmin)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
