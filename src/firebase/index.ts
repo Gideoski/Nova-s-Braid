@@ -11,7 +11,6 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services with hardened settings for restricted environments.
- * This is the most reliable way to prevent the "10-second timeout" error in cloud workspaces.
  */
 export function initializeFirebase() {
   if (!appInstance) {

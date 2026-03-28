@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
+const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
+
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,26 +94,30 @@ export default function AdminLoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      // Determine if this is the first user (Master Admin)
-      let isFirstUser = false;
-      try {
-        const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
-        isFirstUser = usersSnap.empty;
-      } catch (checkError) {
-        console.warn("Could not determine user priority, defaulting to pending status.", checkError);
+      // Determine if this user should be auto-approved
+      let shouldBeApproved = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      
+      if (!shouldBeApproved) {
+        // Fallback: check if first user ever
+        try {
+          const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
+          shouldBeApproved = usersSnap.empty;
+        } catch (checkError) {
+          console.warn("Could not determine user priority.", checkError);
+        }
       }
 
       // Create the user document in Firestore (non-blocking)
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isFirstUser,
+        approved: shouldBeApproved,
         createdAt: new Date().toISOString()
       }, { merge: true });
 
       toast({
-        title: isFirstUser ? "Master Account Created" : "Access Requested",
-        description: isFirstUser 
+        title: shouldBeApproved ? "Master Account Created" : "Access Requested",
+        description: shouldBeApproved 
           ? "You have been granted Master Access. Entering dashboard..." 
           : "Your registration is complete. Awaiting administrator approval.",
       });
