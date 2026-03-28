@@ -42,8 +42,8 @@ export default function AdminLoginPage() {
       const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
       if (isSuperAdmin) {
-        // For Super Admin, we redirect immediately based on Auth token email
-        // We'll attempt the DB approval in the background if needed
+        // Super Admin is always authorized immediately in UI
+        // Attempt background approval if not already approved
         if (!isUserDataLoading && (!userData || !userData.approved)) {
           const userRef = doc(firestore!, 'users', user.uid);
           setDocumentNonBlocking(userRef, {
@@ -62,8 +62,8 @@ export default function AdminLoginPage() {
 
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
-    if (error?.message?.includes('unavailable') || error?.message?.includes('timeout')) {
-      return 'Network connection is unstable. Please retry.';
+    if (error?.message?.includes('unavailable') || error?.message?.includes('timeout') || code === 'auth/network-request-failed') {
+      return 'Network connection delay. Please try again.';
     }
     switch (code) {
       case 'auth/email-already-in-use':
@@ -106,28 +106,18 @@ export default function AdminLoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      let shouldBeApproved = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
-      // Background check for first user if not super admin
-      if (!shouldBeApproved) {
-        try {
-          const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
-          shouldBeApproved = usersSnap.empty;
-        } catch (checkError) {
-          console.warn("Priority check delayed.", checkError);
-        }
-      }
-
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: shouldBeApproved,
+        approved: isSuperAdmin, // Super Admin self-approves
         createdAt: new Date().toISOString()
       }, { merge: true });
 
       toast({
-        title: shouldBeApproved ? "Master Access Granted" : "Registration Sent",
-        description: shouldBeApproved 
+        title: isSuperAdmin ? "Master Access Granted" : "Registration Sent",
+        description: isSuperAdmin 
           ? "Welcome, Master Operator." 
           : "Access request is pending administrator approval.",
       });
@@ -135,9 +125,10 @@ export default function AdminLoginPage() {
     } catch (error: any) {
       setIsLoading(false);
       if (error.code === 'auth/email-already-in-use') {
+        // If account exists, just switch to login tab or show pending screen
         toast({
-          title: "Account Registered",
-          description: "Use the login tab to access your account.",
+          title: "Account Exists",
+          description: "This email is already registered. Please sign in.",
         });
         return;
       }
@@ -149,31 +140,35 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Show a specialized screen if Firestore times out but we're not the super admin
+  // Show a specialized screen if Firestore times out
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-        <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
-          <CardHeader className="text-center">
-            <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-              <WifiOff className="h-10 w-10 text-destructive" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
-            <CardDescription className="mt-4">
-              The security server is taking too long to respond. This is common in some network environments.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" onClick={() => window.location.reload()}>
-              Retry Connection
-            </Button>
-            <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
-              Switch Account
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
+    // Only block if we aren't the Super Admin (who can bypass via token email)
+    const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    if (!isSuperAdmin) {
+      return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+          <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
+            <CardHeader className="text-center">
+              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+                <WifiOff className="h-10 w-10 text-destructive" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
+              <CardDescription className="mt-4">
+                The security server is taking too long to respond. This is common in some network environments.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex flex-col gap-4">
+              <Button className="w-full" onClick={() => window.location.reload()}>
+                Retry Connection
+              </Button>
+              <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
+                Switch Account
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
   }
 
   const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
