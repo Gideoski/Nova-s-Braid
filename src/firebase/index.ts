@@ -11,6 +11,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services with hardened settings for restricted environments.
+ * Uses long-polling to bypass restrictive proxies and firewalls.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -21,12 +22,13 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling to bypass restrictive proxies/firewalls
+        // Force long polling to bypass restrictive proxies/firewalls common in cloud IDEs
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           useFetchStreams: false,
         });
       } catch (e) {
+        console.warn("Firestore initialization with custom settings failed, falling back to default.", e);
         firestoreInstance = getFirestore(appInstance);
       }
     } else {
@@ -45,7 +47,7 @@ export function initializeFirebase() {
   };
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function getSdks() {
   return initializeFirebase();
 }
 

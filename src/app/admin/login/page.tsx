@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
@@ -38,36 +38,41 @@ export default function AdminLoginPage() {
 
   // Handle Redirection & Auto-Approval for Super Admin
   useEffect(() => {
-    if (!isUserLoading && !isUserDataLoading && user) {
+    if (!isUserLoading && user) {
       const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
-      if (userData) {
-        if (userData.approved) {
+      // If Super Admin is logged in, prioritize access
+      if (isSuperAdmin) {
+        if (!isUserDataLoading) {
+          if (!userData || !userData.approved) {
+            // Force approve super admin in DB
+            const userRef = doc(firestore!, 'users', user.uid);
+            setDocumentNonBlocking(userRef, {
+              email: user.email,
+              approved: true,
+              createdAt: userData?.createdAt || new Date().toISOString()
+            }, { merge: true });
+          }
+          // Redirect immediately for Super Admin
           router.push('/admin');
-        } else if (isSuperAdmin) {
-          // If super admin is logged in but doc says not approved, fix it immediately
-          const userRef = doc(firestore!, 'users', user.uid);
-          updateDocumentNonBlocking(userRef, { approved: true });
         }
-      } else if (isSuperAdmin) {
-        // If super admin exists in Auth but not in Firestore, create the doc
-        const userRef = doc(firestore!, 'users', user.uid);
-        setDocumentNonBlocking(userRef, {
-          email: user.email,
-          approved: true,
-          createdAt: new Date().toISOString()
-        }, { merge: true });
+      } else if (!isUserDataLoading && userData?.approved) {
+        // Normal approved admin
+        router.push('/admin');
       }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router, firestore]);
 
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
+    if (error?.message?.includes('unavailable') || error?.message?.includes('timeout')) {
+      return 'Server connection lost. Please check your internet or retry.';
+    }
     switch (code) {
       case 'auth/email-already-in-use':
         return 'This email address is already registered. Please login instead.';
       case 'auth/invalid-email':
-        return 'Invalid email format. Please verify and try again.';
+        return 'Invalid email format.';
       case 'auth/weak-password':
         return 'Password is too weak. Please use at least 6 characters.';
       case 'auth/user-not-found':
@@ -76,9 +81,6 @@ export default function AdminLoginPage() {
         return 'Invalid credentials. Access denied.';
       case 'auth/too-many-requests':
         return 'Too many attempts. Access temporarily restricted.';
-      case 'auth/network-request-failed':
-      case 'unavailable':
-        return 'Server connection lost. Please check your internet or retry.';
       default:
         return 'An internal error occurred. Please try again.';
     }
@@ -133,19 +135,16 @@ export default function AdminLoginPage() {
       });
       
     } catch (error: any) {
+      setIsLoading(false);
+      // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
-        signInWithEmailAndPassword(auth, email, password).catch((signInError: any) => {
-           setIsLoading(false);
-           toast({
-            variant: 'destructive',
-            title: 'Authentication Failed',
-            description: getProfessionalErrorMessage(signInError),
-          });
+        toast({
+          title: "Account Already Registered",
+          description: "Please use the login tab to access your account.",
         });
         return;
       }
 
-      setIsLoading(false);
       toast({
         variant: 'destructive',
         title: 'Registration Error',
@@ -180,7 +179,10 @@ export default function AdminLoginPage() {
     );
   }
 
-  if (isUserLoading || (user && isUserDataLoading)) {
+  // Super Admin bypass: If it's the super admin email, we don't show the pending screen
+  const isPending = user && (!userData || !userData.approved) && user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase();
+
+  if (isUserLoading || (user && isUserDataLoading && !isPending && user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -189,7 +191,7 @@ export default function AdminLoginPage() {
     );
   }
 
-  if (user && (!userData || !userData.approved)) {
+  if (isPending) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
         <Card className="max-w-md w-full border-primary/20 bg-card/40 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
@@ -256,12 +258,12 @@ export default function AdminLoginPage() {
                 <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10"/>
+                    <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10 focus:ring-primary/50"/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
-                      <Input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10"/>
+                      <Input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10 focus:ring-primary/50"/>
                       <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
@@ -278,12 +280,12 @@ export default function AdminLoginPage() {
                 <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10"/>
+                    <Input id="signup-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10 focus:ring-primary/50"/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
-                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10"/>
+                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10 focus:ring-primary/50"/>
                       <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
