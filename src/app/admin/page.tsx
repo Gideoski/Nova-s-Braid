@@ -1,14 +1,16 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useCollection, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCollection, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2 } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
 import {
@@ -26,23 +28,37 @@ import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
   
   const categoriesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'serviceCategories');
   }, [firestore]);
 
-  const { data: categories, isLoading } = useCollection<ServiceCategory>(categoriesRef);
+  const { data: categories, isLoading: isDataLoading } = useCollection<ServiceCategory>(categoriesRef);
 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingService, setEditingService] = useState<{ catId: string; serviceIndex: number; name: string; price: string } | null>(null);
   const [newStyle, setNewStyle] = useState<{ catId: string; name: string; price: string } | null>(null);
   const [discount, setDiscount] = useState<{ catId: string; percentage: string } | null>(null);
 
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/admin/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/admin/login');
+  };
+
   const handleSeedData = () => {
     if (!firestore) return;
     initialData.forEach((cat) => {
-      const catRef = doc(firestore, 'serviceCategories', cat.id);
+      const catRef = doc(firestore, 'serviceCategories', cat.id!);
       setDocumentNonBlocking(catRef, { name: cat.name, services: cat.services }, { merge: true });
     });
   };
@@ -88,7 +104,6 @@ export default function AdminDashboard() {
     if (!category) return;
 
     const updatedServices = [...category.services];
-    // When manually editing, we reset the original price because the price is being redefined
     updatedServices[editingService.serviceIndex] = {
       name: editingService.name,
       price: Number(editingService.price),
@@ -127,7 +142,6 @@ export default function AdminDashboard() {
     if (!category) return;
 
     const updatedServices = category.services.map(s => {
-      // Create a copy without the originalPrice field instead of setting it to undefined
       const { originalPrice, ...rest } = s;
       return {
         ...rest,
@@ -140,16 +154,28 @@ export default function AdminDashboard() {
     setDiscount(null);
   };
 
-  if (isLoading) return <div className="p-12 text-center">Loading dashboard...</div>;
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isDataLoading) return <div className="p-12 text-center">Loading dashboard...</div>;
 
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage your services, prices, and styles.</p>
+          <p className="text-muted-foreground">Logged in as {user.email}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
@@ -161,7 +187,7 @@ export default function AdminDashboard() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will reset all your services to the default list. Any custom changes or new categories you created will be kept, but the original styles will be restored/updated.
+                  This will reset all your services to the default list.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -177,7 +203,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Add New Category</CardTitle>
-            <CardDescription>Create a new group for your styles (e.g., "Wigs", "Treatments")</CardDescription>
+            <CardDescription>Create a new group for your styles</CardDescription>
           </CardHeader>
           <CardContent className="flex gap-4">
             <Input 
@@ -197,7 +223,7 @@ export default function AdminDashboard() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-2xl">{category.name}</CardTitle>
-                <CardDescription>{category.services.length} styles in this category</CardDescription>
+                <CardDescription>{category.services.length} styles</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -218,9 +244,6 @@ export default function AdminDashboard() {
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Category?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{category.name}" and all its styles? This action cannot be undone.
-                      </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -232,18 +255,22 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {discount?.catId === category.id && (
-                <div className="bg-accent p-4 rounded-lg mb-4 flex items-center gap-4 border border-primary/30">
-                  <Tag className="h-5 w-5 text-primary" />
-                  <Label>Discount Percentage (%):</Label>
-                  <Input 
-                    type="number" 
-                    className="w-24" 
-                    value={discount.percentage} 
-                    onChange={e => setDiscount({ ...discount, percentage: e.target.value })}
-                  />
-                  <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
-                  <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Clear All Discounts</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
+                <div className="bg-accent p-4 rounded-lg mb-4 flex flex-col md:flex-row items-center gap-4 border border-primary/30">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    <Label>Discount (%):</Label>
+                    <Input 
+                      type="number" 
+                      className="w-24" 
+                      value={discount.percentage} 
+                      onChange={e => setDiscount({ ...discount, percentage: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
+                    <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Clear</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
+                  </div>
                 </div>
               )}
 
@@ -282,7 +309,7 @@ export default function AdminDashboard() {
                             </Badge>
                           )}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="ghost" 
                             size="icon" 
@@ -300,9 +327,6 @@ export default function AdminDashboard() {
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Style?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Remove "{service.name}" from your service list?
-                                </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -319,7 +343,7 @@ export default function AdminDashboard() {
             </CardContent>
             <CardFooter className="bg-secondary/20 pt-4">
               {newStyle?.catId === category.id ? (
-                <div className="flex w-full gap-2">
+                <div className="flex flex-col md:flex-row w-full gap-2">
                   <Input 
                     placeholder="Style Name" 
                     className="flex-1"
@@ -333,13 +357,15 @@ export default function AdminDashboard() {
                     value={newStyle.price}
                     onChange={e => setNewStyle({...newStyle, price: e.target.value})}
                   />
-                  <Button onClick={() => addStyle(category.id!)}>Add Style</Button>
-                  <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => addStyle(category.id!)}>Add</Button>
+                    <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
+                  </div>
                 </div>
               ) : (
                 <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => setNewStyle({ catId: category.id!, name: '', price: '' })}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add New Style to {category.name}
+                  Add Style
                 </Button>
               )}
             </CardFooter>

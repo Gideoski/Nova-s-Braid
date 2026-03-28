@@ -72,43 +72,21 @@
   },
   "auth": {
     "providers": [
-      "anonymous"
+      "email"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/appointments/{appointmentId}",
-        "definition": {
-          "entityName": "Appointment",
-          "schema": {
-            "$ref": "#/backend/entities/Appointment"
-          },
-          "description": "Stores all booked appointments.",
-          "params": [
-            {
-              "name": "appointmentId",
-              "description": "The unique identifier of the appointment."
-            }
-          ]
-        }
+    "/appointments/{appointmentId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Appointment"
       },
-      {
-        "path": "/serviceCategories/{categoryId}",
-        "definition": {
-          "entityName": "ServiceCategory",
-          "schema": {
-            "$ref": "#/backend/entities/ServiceCategory"
-          },
-          "description": "Stores the dynamic list of service categories and their associated styles and prices.",
-          "params": [
-            {
-              "name": "categoryId",
-              "description": "The unique identifier of the category."
-            }
-          ]
-        }
-      }
-    ]
+      "description": "Stores all booked appointments."
+    },
+    "/serviceCategories/{categoryId}": {
+      "schema": {
+        "$ref": "#/backend/entities/ServiceCategory"
+      },
+      "description": "Stores the dynamic list of service categories and their associated styles and prices."
+    }
   }
 }
