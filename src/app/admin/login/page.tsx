@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,15 +37,16 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isMainAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Redirection & Auto-approval / Re-registration Logic
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (!isUserLoading && user && !isUserDataLoading) {
       const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // Handle missing Firestore record (e.g. after a directory reset)
-      if (!isUserDataLoading && !userData && !userDocError) {
+      // Only create if it definitely doesn't exist and we aren't already loading it
+      if (!userData && !userDocError) {
         const userRef = doc(firestore!, 'users', user.uid);
         setDocumentNonBlocking(userRef, {
           email: user.email,
@@ -57,7 +58,11 @@ export default function AdminLoginPage() {
       // Check for authorized state
       if (isUserAdmin || (userData?.approved === true)) {
         setIsAuthorizing(true);
-        router.replace('/admin');
+        // Add a small delay to ensure redirect happens after state is stable
+        const timeout = setTimeout(() => {
+          router.replace('/admin');
+        }, 100);
+        return () => clearTimeout(timeout);
       }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, userDocError, router, firestore]);
@@ -69,7 +74,7 @@ export default function AdminLoginPage() {
     }
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'Email already registered. Please Login instead.';
+        return 'Email already registered. Please Login instead of Registering.';
       case 'auth/invalid-email':
         return 'Invalid email format.';
       case 'auth/weak-password':
@@ -158,9 +163,9 @@ export default function AdminLoginPage() {
     );
   }
 
-  const isPending = !isUserLoading && !isUserDataLoading && user && !isAdmin && (!userData || userData.approved === false);
+  const isPending = !isUserLoading && !isUserDataLoading && user && !isMainAdmin && (!userData || userData.approved === false);
 
-  if (isUserLoading || (user && isUserDataLoading && !isAdmin) || isAuthorizing) {
+  if (isUserLoading || (user && isUserDataLoading && !isMainAdmin) || isAuthorizing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -220,7 +225,7 @@ export default function AdminLoginPage() {
         <Card className="border-primary/20 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden">
           <CardHeader className="space-y-2 text-center pb-8 border-b border-primary/10 mb-6">
             <CardTitle className="text-4xl font-bold tracking-tighter text-primary uppercase sparkle-text">
-              Nova Admin
+              Admin Login
             </CardTitle>
             <CardDescription className="text-muted-foreground font-light text-base">
               Authorized personnel only.

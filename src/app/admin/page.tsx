@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,7 @@ export default function AdminDashboard() {
   const [editingService, setEditingService] = useState<{ catId: string; serviceIndex: number; name: string; price: string } | null>(null);
   const [newStyle, setNewStyle] = useState<{ catId: string; name: string; price: string } | null>(null);
   const [discount, setDiscount] = useState<{ catId: string; percentage: string } | null>(null);
+  const [isUpdatingUser, setIsUpdatingUser] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -82,20 +83,34 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
-  const toggleUserApproval = (uid: string, currentStatus: boolean, email: string) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', uid);
-    // Use setDocumentNonBlocking with merge to ensure it updates existing or creates if missing
-    setDocumentNonBlocking(userRef, { 
-      approved: !currentStatus,
-      email: email,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+  const toggleUserApproval = async (uid: string, currentStatus: boolean, email: string) => {
+    if (!firestore || isUpdatingUser) return;
     
-    toast({
-      title: !currentStatus ? "User Approved" : "Access Revoked",
-      description: `Permissions updated successfully.`,
-    });
+    setIsUpdatingUser(uid);
+    const userRef = doc(firestore, 'users', uid);
+    const newStatus = !currentStatus;
+
+    try {
+      // Use setDoc directly to ensure it waits for the write or at least triggers it reliably
+      await setDoc(userRef, { 
+        approved: newStatus,
+        email: email,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+      toast({
+        title: newStatus ? "User Approved" : "Access Revoked",
+        description: `${email} permissions updated.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: "Update Failed",
+        description: "Could not save permissions. Please try again.",
+      });
+    } finally {
+      setIsUpdatingUser(null);
+    }
   };
 
   const deleteUser = (uid: string) => {
@@ -469,10 +484,11 @@ export default function AdminDashboard() {
                             <Button 
                               variant={admin.approved ? "outline" : "default"} 
                               onClick={() => toggleUserApproval(admin.id, admin.approved, admin.email)}
+                              disabled={isUpdatingUser === admin.id}
                               size="sm"
                               className="font-bold uppercase text-[10px]"
                             >
-                              {admin.approved ? 'Revoke' : 'Approve'}
+                              {isUpdatingUser === admin.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (admin.approved ? 'Revoke' : 'Approve')}
                             </Button>
                             
                             <AlertDialog>
