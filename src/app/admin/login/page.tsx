@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, getDocs, query, limit } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
 export default function AdminLoginPage() {
@@ -34,6 +34,7 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
+  // Handle Redirection
   useEffect(() => {
     if (!isUserLoading && !isUserDataLoading && user && userData) {
       if (userData.approved) {
@@ -46,7 +47,7 @@ export default function AdminLoginPage() {
     const code = error?.code || '';
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'This email address is already registered in our administrative records.';
+        return 'An account with this email already exists and is currently pending approval.';
       case 'auth/invalid-email':
         return 'The email format provided is not recognized. Please verify and try again.';
       case 'auth/weak-password':
@@ -57,8 +58,6 @@ export default function AdminLoginPage() {
         return 'The credentials provided are incorrect. Access denied.';
       case 'auth/too-many-requests':
         return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
-      case 'auth/network-request-failed':
-        return 'Connectivity issue detected. Please check your secure connection.';
       default:
         return 'An internal authentication error occurred. Please try again later.';
     }
@@ -101,7 +100,7 @@ export default function AdminLoginPage() {
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isFirstUser, // Auto-approve if first user
+        approved: isFirstUser, // Auto-approve only if first user
         createdAt: new Date().toISOString()
       }, { merge: true });
 
@@ -134,18 +133,29 @@ export default function AdminLoginPage() {
   if (user && userData && !userData.approved) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-        <Card className="max-w-md w-full border-primary/20 bg-card/40 backdrop-blur-xl">
+        <Card className="max-w-md w-full border-primary/20 bg-card/40 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
           <CardHeader className="text-center">
-            <ShieldAlert className="h-12 w-12 text-primary mx-auto mb-4" />
-            <CardTitle className="text-2xl font-bold text-primary uppercase">Access Pending</CardTitle>
-            <CardDescription className="text-muted-foreground mt-2">
-              Your account ({user.email}) has been created successfully, but an administrator needs to approve your access before you can enter the dashboard.
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <ShieldAlert className="h-10 w-10 text-primary animate-pulse" />
+            </div>
+            <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
+            <CardDescription className="text-muted-foreground mt-4 text-balance">
+              Your account <strong>{user.email}</strong> is registered. However, administrative access must be manually approved by the master administrator.
             </CardDescription>
           </CardHeader>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => auth.signOut()}>
+          <CardContent className="space-y-4">
+            <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+              <p className="text-sm text-muted-foreground">Registration confirmed. Your data is secure.</p>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button variant="outline" className="w-full border-primary/20" onClick={() => auth.signOut()}>
               Sign Out & Return
             </Button>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
+              Awaiting verification by Control Center
+            </p>
           </CardFooter>
         </Card>
       </div>
@@ -189,7 +199,7 @@ export default function AdminLoginPage() {
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="login">
+              <TabsContent value="login" className="space-y-5">
                 <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Admin Email</Label>
@@ -200,6 +210,7 @@ export default function AdminLoginPage() {
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
                       required 
+                      className="bg-black/40 border-primary/10"
                     />
                   </div>
                   <div className="space-y-2">
@@ -211,26 +222,27 @@ export default function AdminLoginPage() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
+                        className="bg-black/40 border-primary/10 pr-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase shadow-lg shadow-primary/20" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
                     Enter Dashboard
                   </Button>
                 </form>
               </TabsContent>
               
-              <TabsContent value="signup">
+              <TabsContent value="signup" className="space-y-5">
                 <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Registration Email</Label>
@@ -241,6 +253,7 @@ export default function AdminLoginPage() {
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
                       required 
+                      className="bg-black/40 border-primary/10"
                     />
                   </div>
                   <div className="space-y-2">
@@ -252,19 +265,20 @@ export default function AdminLoginPage() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
+                        className="bg-black/40 border-primary/10 pr-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase shadow-lg shadow-primary/20" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     Request Access
                   </Button>

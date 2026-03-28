@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -22,9 +21,10 @@ service cloud.firestore {
       // Allow initial signup (create) if it's their own record
       allow create: if request.auth != null && request.auth.uid == userId;
       // Allow user to read their own status
-      allow get: if request.auth != null && request.auth.uid == userId;
+      allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin());
       // Only approved admins can list users or update them
-      allow list, update, delete: if isApprovedAdmin();
+      allow list: if isApprovedAdmin();
+      allow update, delete: if isApprovedAdmin() && userId != request.auth.uid;
     }
   }
 }
