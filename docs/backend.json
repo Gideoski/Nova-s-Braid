@@ -68,6 +68,15 @@
         }
       },
       "required": ["name", "services"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "approved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -86,7 +95,13 @@
       "schema": {
         "$ref": "#/backend/entities/ServiceCategory"
       },
-      "description": "Stores the dynamic list of service categories and their associated styles and prices."
+      "description": "Stores the dynamic list of service categories."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/AdminUser"
+      },
+      "description": "Stores administrative user permissions."
     }
   }
 }

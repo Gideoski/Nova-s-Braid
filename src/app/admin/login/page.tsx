@@ -3,14 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, doc, getDocs, query, limit } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -19,20 +20,30 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/admin');
+    if (!isUserLoading && !isUserDataLoading && user && userData) {
+      if (userData.approved) {
+        router.push('/admin');
+      }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, userData, isUserLoading, isUserDataLoading, router]);
 
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
-    
     switch (code) {
       case 'auth/email-already-in-use':
         return 'This email address is already registered in our administrative records.';
@@ -60,8 +71,8 @@ export default function AdminLoginPage() {
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
         toast({
-          title: "Access Granted",
-          description: "Welcome back. Entering secure dashboard...",
+          title: "Session Initiated",
+          description: "Verifying administrative permissions...",
         });
       })
       .catch((error: any) => {
@@ -74,31 +85,69 @@ export default function AdminLoginPage() {
       });
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        toast({
-          title: "Account Provisioned",
-          description: "Administrative access has been successfully created.",
-        });
-      })
-      .catch((error: any) => {
-        setIsLoading(false);
-        toast({
-          variant: 'destructive',
-          title: 'Provisioning Failed',
-          description: getProfessionalErrorMessage(error),
-        });
+    try {
+      // Check if any users exist. If not, the first user is the super admin.
+      const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
+      const isFirstUser = usersSnap.empty;
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Create the user document in Firestore
+      const userRef = doc(firestore!, 'users', newUser.uid);
+      setDocumentNonBlocking(userRef, {
+        email: email,
+        approved: isFirstUser, // Auto-approve if first user
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
+      toast({
+        title: isFirstUser ? "Master Account Created" : "Access Requested",
+        description: isFirstUser 
+          ? "You have been granted Master Access. Entering dashboard..." 
+          : "Your request is pending. Please contact the administrator for approval.",
       });
+      
+    } catch (error: any) {
+      setIsLoading(false);
+      toast({
+        variant: 'destructive',
+        title: 'Provisioning Failed',
+        description: getProfessionalErrorMessage(error),
+      });
+    }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || (user && isUserDataLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If user is logged in but not approved
+  if (user && userData && !userData.approved) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <Card className="max-w-md w-full border-primary/20 bg-card/40 backdrop-blur-xl">
+          <CardHeader className="text-center">
+            <ShieldAlert className="h-12 w-12 text-primary mx-auto mb-4" />
+            <CardTitle className="text-2xl font-bold text-primary uppercase">Access Pending</CardTitle>
+            <CardDescription className="text-muted-foreground mt-2">
+              Your account ({user.email}) has been created successfully, but an administrator needs to approve your access before you can enter the dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button variant="outline" className="w-full" onClick={() => auth.signOut()}>
+              Sign Out & Return
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
@@ -120,24 +169,20 @@ export default function AdminLoginPage() {
               Nova Admin
             </CardTitle>
             <CardDescription className="text-muted-foreground font-light text-base">
-              Secure authentication for authorized personnel only.
+              Secure authentication for authorized personnel.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 border border-primary/10">
-                <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Login
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Register
-                </TabsTrigger>
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Register</TabsTrigger>
               </TabsList>
               
               <TabsContent value="login">
                 <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-muted-foreground">Admin Email</Label>
+                    <Label htmlFor="login-email">Admin Email</Label>
                     <Input 
                       id="login-email" 
                       type="email" 
@@ -145,7 +190,6 @@ export default function AdminLoginPage() {
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
                       required 
-                      className="bg-black/20 border-primary/10 focus:border-primary/50 transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
@@ -157,24 +201,19 @@ export default function AdminLoginPage() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
-                        className="pr-10 bg-black/20 border-primary/10 focus:border-primary/50 transition-colors"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground hover:text-primary transition-colors"
+                        className="absolute right-0 top-0 h-full px-3 py-2"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase tracking-[0.2em] shadow-lg shadow-primary/20" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
                     Enter Dashboard
                   </Button>
@@ -192,7 +231,6 @@ export default function AdminLoginPage() {
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
                       required 
-                      className="bg-black/20 border-primary/10"
                     />
                   </div>
                   <div className="space-y-2">
@@ -204,24 +242,19 @@ export default function AdminLoginPage() {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
-                        className="pr-10 bg-black/20 border-primary/10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                        className="absolute right-0 top-0 h-full px-3 py-2"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase tracking-[0.2em]" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                     Request Access
                   </Button>
@@ -229,16 +262,8 @@ export default function AdminLoginPage() {
               </TabsContent>
             </Tabs>
           </CardContent>
-          <CardFooter className="flex flex-col gap-3 py-6 bg-black/20">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold">
-              <div className="h-px w-8 bg-primary/20" />
-              Secure Protocol
-              <div className="h-px w-8 bg-primary/20" />
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center px-4 leading-relaxed">
-              Unauthorized access attempts are monitored. 
-              Please ensure your connection is encrypted.
-            </p>
+          <CardFooter className="flex flex-col gap-3 py-6 bg-black/20 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold">
+            <p>Unauthorized access attempts are monitored.</p>
           </CardFooter>
         </Card>
       </div>

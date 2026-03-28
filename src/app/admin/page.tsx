@@ -3,14 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCollection, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useUser, useAuth } from '@/firebase';
+import { useCollection, useFirestore, useDoc, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useUser, useAuth, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
 import {
@@ -31,13 +32,26 @@ export default function AdminDashboard() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+
   const categoriesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'serviceCategories');
   }, [firestore]);
 
+  const adminsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+
   const { data: categories, isLoading: isDataLoading } = useCollection<ServiceCategory>(categoriesRef);
+  const { data: adminUsers, isLoading: isAdminsLoading } = useCollection<any>(adminsRef);
 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingService, setEditingService] = useState<{ catId: string; serviceIndex: number; name: string; price: string } | null>(null);
@@ -50,9 +64,28 @@ export default function AdminDashboard() {
     }
   }, [user, isUserLoading, router]);
 
+  // Protect dashboard from unapproved users
+  useEffect(() => {
+    if (!isUserLoading && !isUserDataLoading && user && userData && !userData.approved) {
+      router.push('/admin/login');
+    }
+  }, [user, userData, isUserLoading, isUserDataLoading, router]);
+
   const handleSignOut = async () => {
     await signOut(auth);
     router.push('/admin/login');
+  };
+
+  const toggleUserApproval = (uid: string, currentStatus: boolean) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', uid);
+    updateDocumentNonBlocking(userRef, { approved: !currentStatus });
+  };
+
+  const deleteUser = (uid: string) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', uid);
+    deleteDocumentNonBlocking(userRef);
   };
 
   const handleSeedData = () => {
@@ -81,7 +114,6 @@ export default function AdminDashboard() {
     if (!newStyle || !firestore || !categories) return;
     const category = categories.find(c => c.id === catId);
     if (!category) return;
-
     const updatedServices = [...category.services, { name: newStyle.name, price: Number(newStyle.price) }];
     const catRef = doc(firestore, 'serviceCategories', catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
@@ -92,7 +124,6 @@ export default function AdminDashboard() {
     if (!firestore || !categories) return;
     const category = categories.find(c => c.id === catId);
     if (!category) return;
-
     const updatedServices = category.services.filter((_, i) => i !== serviceIndex);
     const catRef = doc(firestore, 'serviceCategories', catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
@@ -102,13 +133,11 @@ export default function AdminDashboard() {
     if (!editingService || !firestore || !categories) return;
     const category = categories.find(c => c.id === editingService.catId);
     if (!category) return;
-
     const updatedServices = [...category.services];
     updatedServices[editingService.serviceIndex] = {
       name: editingService.name,
       price: Number(editingService.price),
     };
-
     const catRef = doc(firestore, 'serviceCategories', editingService.catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
     setEditingService(null);
@@ -118,19 +147,12 @@ export default function AdminDashboard() {
     if (!discount || !firestore || !categories) return;
     const category = categories.find(c => c.id === catId);
     if (!category) return;
-
     const percentage = Number(discount.percentage);
     const multiplier = (100 - percentage) / 100;
-
     const updatedServices = category.services.map(s => {
       const basePrice = s.originalPrice || s.price;
-      return {
-        ...s,
-        originalPrice: basePrice,
-        price: Math.round(basePrice * multiplier)
-      };
+      return { ...s, originalPrice: basePrice, price: Math.round(basePrice * multiplier) };
     });
-
     const catRef = doc(firestore, 'serviceCategories', catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
     setDiscount(null);
@@ -140,21 +162,16 @@ export default function AdminDashboard() {
     if (!firestore || !categories) return;
     const category = categories.find(c => c.id === catId);
     if (!category) return;
-
     const updatedServices = category.services.map(s => {
       const { originalPrice, ...rest } = s;
-      return {
-        ...rest,
-        price: originalPrice || s.price
-      };
+      return { ...rest, price: originalPrice || s.price };
     });
-
     const catRef = doc(firestore, 'serviceCategories', catId);
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
     setDiscount(null);
   };
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || isUserDataLoading || !user || !userData?.approved) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -162,216 +179,270 @@ export default function AdminDashboard() {
     );
   }
 
-  if (isDataLoading) return <div className="p-12 text-center">Loading dashboard...</div>;
-
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Logged in as {user.email}</p>
+          <h1 className="text-4xl font-bold tracking-tight text-primary uppercase">Control Center</h1>
+          <p className="text-muted-foreground font-light italic">Logged in as {user.email}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restore Defaults
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will reset all your services to the default list.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSeedData}>Restore</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
 
-      <div className="grid gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Category</CardTitle>
-            <CardDescription>Create a new group for your styles</CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-4">
-            <Input 
-              placeholder="Category Name" 
-              value={newCategoryName} 
-              onChange={(e) => setNewCategoryName(e.target.value)}
-            />
-            <Button onClick={addCategory}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add
-            </Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="services" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-12 bg-secondary/50 p-1 border border-primary/10 h-14">
+          <TabsTrigger value="services" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <LayoutDashboard className="mr-2 h-5 w-5" />
+            Manage Services
+          </TabsTrigger>
+          <TabsTrigger value="access" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Users className="mr-2 h-5 w-5" />
+            Access Control
+          </TabsTrigger>
+        </TabsList>
 
-        {categories?.map((category) => (
-          <Card key={category.id} className="border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle className="text-2xl">{category.name}</CardTitle>
-                <CardDescription>{category.services.length} styles</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setDiscount({ catId: category.id!, percentage: '' })}
-                >
-                  <Percent className="mr-2 h-4 w-4" />
-                  Discount
+        <TabsContent value="services" className="space-y-8 animate-in fade-in duration-500">
+          <div className="flex justify-between items-center bg-secondary/20 p-6 rounded-lg border border-primary/10">
+            <div>
+              <h2 className="text-xl font-bold text-primary uppercase tracking-wider">Service Management</h2>
+              <p className="text-sm text-muted-foreground">Define your styles and categories</p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary/10">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Restore Defaults
                 </Button>
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Category?</AlertDialogTitle>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteCategory(category.id!)}>Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {discount?.catId === category.id && (
-                <div className="bg-accent p-4 rounded-lg mb-4 flex flex-col md:flex-row items-center gap-4 border border-primary/30">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" />
-                    <Label>Discount (%):</Label>
-                    <Input 
-                      type="number" 
-                      className="w-24" 
-                      value={discount.percentage} 
-                      onChange={e => setDiscount({ ...discount, percentage: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
-                    <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Clear</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Restore default styles?</AlertDialogTitle>
+                  <AlertDialogDescription>This will reset all your services to the baseline list.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSeedData}>Restore</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
 
-              <div className="grid gap-2">
-                {category.services.map((service, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-md bg-secondary/50 group">
-                    {editingService?.catId === category.id && editingService.serviceIndex === idx ? (
-                      <div className="flex flex-1 gap-2 items-center">
-                        <Input 
-                          value={editingService.name} 
-                          onChange={e => setEditingService({...editingService, name: e.target.value})}
-                          className="flex-1"
-                        />
-                        <Input 
-                          type="number"
-                          value={editingService.price} 
-                          onChange={e => setEditingService({...editingService, price: e.target.value})}
-                          className="w-32"
-                        />
-                        <Button size="icon" onClick={saveEditedService}><Save className="h-4 w-4"/></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setEditingService(null)}><X className="h-4 w-4"/></Button>
+          <Card className="border-primary/20 bg-card/50">
+            <CardHeader>
+              <CardTitle className="text-lg uppercase tracking-widest">Create Category</CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-4">
+              <Input 
+                placeholder="Category Name (e.g., Knotless, Ponytail)" 
+                value={newCategoryName} 
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                className="bg-black/20"
+              />
+              <Button onClick={addCategory} className="shadow-lg shadow-primary/20">
+                <Plus className="mr-2 h-4 w-4" />
+                Add
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-8">
+            {isDataLoading ? <div className="text-center p-12"><Loader2 className="animate-spin h-8 w-8 mx-auto" /></div> : 
+              categories?.map((category) => (
+                <Card key={category.id} className="border-primary/20 overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between bg-primary/5 border-b border-primary/10">
+                    <div>
+                      <CardTitle className="text-2xl font-bold text-primary uppercase">{category.name}</CardTitle>
+                      <CardDescription>{category.services.length} Styles listed</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setDiscount({ catId: category.id!, percentage: '' })}>
+                        <Percent className="mr-2 h-4 w-4" />
+                        Discount
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="h-9 w-9 p-0">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Category?</AlertDialogTitle>
+                            <AlertDialogDescription>This will remove "{category.name}" and all its styles.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteCategory(category.id!)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {discount?.catId === category.id && (
+                      <div className="bg-primary/5 p-4 rounded-lg mb-6 flex flex-col md:flex-row items-center gap-4 border border-primary/20 animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-5 w-5 text-primary" />
+                          <Label>Percentage Discount (%):</Label>
+                          <Input type="number" className="w-24 bg-black/20" value={discount.percentage} onChange={e => setDiscount({ ...discount, percentage: e.target.value })} />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
+                          <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Clear All Discounts</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
+                        </div>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex-1 flex items-center gap-3">
-                          <span className="font-medium">{service.name}</span>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-primary font-bold">₦{service.price.toLocaleString()}</span>
-                            {service.originalPrice && service.originalPrice > service.price && (
-                              <span className="text-xs line-through text-muted-foreground">₦{service.originalPrice.toLocaleString()}</span>
-                            )}
-                          </div>
-                          {service.originalPrice && service.originalPrice > service.price && (
-                            <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                              {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
-                            </Badge>
+                    )}
+
+                    <div className="grid gap-2">
+                      {category.services.map((service, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 group border border-transparent hover:border-primary/20 transition-all">
+                          {editingService?.catId === category.id && editingService.serviceIndex === idx ? (
+                            <div className="flex flex-1 gap-4 items-center animate-in zoom-in-95">
+                              <Input value={editingService.name} onChange={e => setEditingService({...editingService, name: e.target.value})} className="flex-1 bg-black/20" />
+                              <div className="flex items-center gap-2">
+                                <span className="text-primary font-bold">₦</span>
+                                <Input type="number" value={editingService.price} onChange={e => setEditingService({...editingService, price: e.target.value})} className="w-32 bg-black/20" />
+                              </div>
+                              <Button size="icon" onClick={saveEditedService}><Save className="h-4 w-4"/></Button>
+                              <Button size="icon" variant="ghost" onClick={() => setEditingService(null)}><X className="h-4 w-4"/></Button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex-1 flex items-center gap-4">
+                                <span className="font-semibold text-lg">{service.name}</span>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-primary font-bold text-lg">₦{service.price.toLocaleString()}</span>
+                                  {service.originalPrice && service.originalPrice > service.price && (
+                                    <span className="text-xs line-through text-muted-foreground">₦{service.originalPrice.toLocaleString()}</span>
+                                  )}
+                                </div>
+                                {service.originalPrice && service.originalPrice > service.price && (
+                                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase">
+                                    {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="icon" className="hover:text-primary" onClick={() => setEditingService({ catId: category.id!, serviceIndex: idx, name: service.name, price: service.price.toString() })}>
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader><AlertDialogTitle>Remove style?</AlertDialogTitle></AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => deleteStyle(category.id!, idx)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </>
                           )}
                         </div>
-                        <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => setEditingService({ catId: category.id!, serviceIndex: idx, name: service.name, price: service.price.toString() })}
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Style?</AlertDialogTitle>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteStyle(category.id!, idx)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                      ))}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="bg-secondary/10 py-4 border-t border-primary/10">
+                    {newStyle?.catId === category.id ? (
+                      <div className="flex flex-col md:flex-row w-full gap-3 p-2 bg-black/20 rounded-lg animate-in slide-in-from-bottom-2">
+                        <Input placeholder="New Style Name" className="flex-1" value={newStyle.name} onChange={e => setNewStyle({...newStyle, name: e.target.value})} />
+                        <Input type="number" placeholder="Price" className="w-32" value={newStyle.price} onChange={e => setNewStyle({...newStyle, price: e.target.value})} />
+                        <div className="flex gap-2">
+                          <Button onClick={() => addStyle(category.id!)}>Add Style</Button>
+                          <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
                         </div>
-                      </>
+                      </div>
+                    ) : (
+                      <Button variant="ghost" className="w-full border-dashed border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5" onClick={() => setNewStyle({ catId: category.id!, name: '', price: '' })}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Style to {category.name}
+                      </Button>
                     )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="bg-secondary/20 pt-4">
-              {newStyle?.catId === category.id ? (
-                <div className="flex flex-col md:flex-row w-full gap-2">
-                  <Input 
-                    placeholder="Style Name" 
-                    className="flex-1"
-                    value={newStyle.name}
-                    onChange={e => setNewStyle({...newStyle, name: e.target.value})}
-                  />
-                  <Input 
-                    type="number" 
-                    placeholder="Price" 
-                    className="w-32"
-                    value={newStyle.price}
-                    onChange={e => setNewStyle({...newStyle, price: e.target.value})}
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={() => addStyle(category.id!)}>Add</Button>
-                    <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
-                  </div>
+                  </CardFooter>
+                </Card>
+              )
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="access" className="animate-in fade-in duration-500">
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="uppercase tracking-widest text-primary">Admin Access Management</CardTitle>
+              <CardDescription>Approve or revoke access to the Nova Control Center</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isAdminsLoading ? <div className="text-center p-8"><Loader2 className="animate-spin h-8 w-8 mx-auto" /></div> : (
+                <div className="space-y-4">
+                  {adminUsers?.map((admin: any) => (
+                    <div key={admin.id} className="flex items-center justify-between p-6 rounded-xl bg-secondary/30 border border-primary/10">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${admin.approved ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                          {admin.approved ? <ShieldCheck className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-lg">{admin.email}</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                            {admin.approved ? 'Authorized Admin' : 'Pending Request'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        {admin.id !== user.uid && (
+                          <>
+                            <Button 
+                              variant={admin.approved ? "outline" : "default"} 
+                              onClick={() => toggleUserApproval(admin.id, admin.approved)}
+                              className={admin.approved ? "border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-green-600 hover:bg-green-700"}
+                            >
+                              {admin.approved ? 'Revoke Access' : 'Approve Access'}
+                            </Button>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" className="text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete administrative user?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will completely remove this user's account record.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteUser(admin.id)}>Delete Permanently</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                        {admin.id === user.uid && (
+                          <Badge variant="outline" className="text-primary border-primary">Your Account (Super Admin)</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {(!adminUsers || adminUsers.length === 0) && (
+                    <p className="text-center text-muted-foreground p-12 italic">No administrative users found.</p>
+                  )}
                 </div>
-              ) : (
-                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => setNewStyle({ catId: category.id!, name: '', price: '' })}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Style
-                </Button>
               )}
-            </CardFooter>
+            </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
