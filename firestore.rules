@@ -3,7 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Helper to check if user is an approved admin
     function isApprovedAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+    }
+    
+    // Helper to check if the current user is the hardcoded super admin
+    function isSuperAdminEmail() {
+      return request.auth != null && request.auth.token.email == 'gideonjackbara@gmail.com';
     }
 
     match /appointments/{appointmentId} {
@@ -18,13 +25,24 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow initial signup (create) if it's their own record
+      // Allow anyone to create their own record during signup
       allow create: if request.auth != null && request.auth.uid == userId;
-      // Allow user to read their own status
+      
+      // Allow users to read their own profile, or admins to read any profile
       allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin());
-      // Only approved admins can list users or update them
+      
+      // Allow the Super Admin to update their own record (to set approved: true)
+      // OR allow an already approved admin to update other users (but not themselves)
+      allow update: if request.auth != null && (
+        (request.auth.uid == userId && isSuperAdminEmail()) || 
+        (isApprovedAdmin() && userId != request.auth.uid)
+      );
+      
+      // Only approved admins can delete users (except themselves)
+      allow delete: if isApprovedAdmin() && userId != request.auth.uid;
+      
+      // Only approved admins can list the entire user directory
       allow list: if isApprovedAdmin();
-      allow update, delete: if isApprovedAdmin() && userId != request.auth.uid;
     }
   }
 }
