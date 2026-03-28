@@ -26,23 +26,24 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow anyone to create their own record during signup or re-login after reset
-      allow create: if request.auth != null && (request.auth.uid == userId || isAdminEmail());
+      // Allow anyone to create their own record
+      allow create: if request.auth != null && request.auth.uid == userId;
       
       // Allow users to read their own profile, or admins to read any profile
       allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin());
       
-      // Allow the Admin to update any record (including their own)
+      // Allow list for management - ONLY for approved admins
+      allow list: if isApprovedAdmin();
+
+      // Allow the Admin to update any record
+      // ALSO allow users to update their own record ONLY if they are setting approved to false
       allow update: if request.auth != null && (
-        isAdminEmail() || 
-        (isApprovedAdmin() && userId != request.auth.uid)
+        isApprovedAdmin() || 
+        (request.auth.uid == userId && request.resource.data.approved == false)
       );
       
-      // Allow Admin to delete users
+      // Allow Admin to delete users (except themselves for safety)
       allow delete: if isAdminEmail() || (isApprovedAdmin() && userId != request.auth.uid);
-      
-      // Allow list for management - ONLY for admin or approved admin
-      allow list: if isApprovedAdmin();
     }
   }
 }
