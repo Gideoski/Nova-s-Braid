@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert, UserCog } from 'lucide-react';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert, UserCog, UserMinus } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_EMAIL = 'gideonjackbara@gmail.com';
 
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -51,7 +53,6 @@ export default function AdminDashboard() {
   }, [firestore, user, isAuthorized]);
 
   const adminsRef = useMemoFirebase(() => {
-    // CRITICAL: Only attempt to list users if we are authenticated, authorized, and auth loading is done
     if (!firestore || isUserLoading || !user || !isAuthorized) return null;
     return collection(firestore, 'users');
   }, [firestore, user, isAuthorized, isUserLoading]);
@@ -64,13 +65,11 @@ export default function AdminDashboard() {
   const [newStyle, setNewStyle] = useState<{ catId: string; name: string; price: string } | null>(null);
   const [discount, setDiscount] = useState<{ catId: string; percentage: string } | null>(null);
 
-  // Authentication & Authorization Guard
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/admin/login');
       return;
     }
-
     if (!isUserLoading && !isUserDataLoading && user) {
       if (!isAdmin && (!userData || !userData.approved)) {
         router.push('/admin/login');
@@ -93,6 +92,20 @@ export default function AdminDashboard() {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', uid);
     deleteDocumentNonBlocking(userRef);
+  };
+
+  const resetAllOtherUsers = () => {
+    if (!firestore || !adminUsers) return;
+    adminUsers.forEach((admin: any) => {
+      if (admin.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        const userRef = doc(firestore, 'users', admin.id);
+        deleteDocumentNonBlocking(userRef);
+      }
+    });
+    toast({
+      title: "Directory Refreshed",
+      description: "All other registered accounts have been removed.",
+    });
   };
 
   const handleSeedData = () => {
@@ -186,6 +199,8 @@ export default function AdminDashboard() {
     );
   }
 
+  const pendingCount = adminUsers?.filter((u: any) => !u.approved && u.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()).length || 0;
+
   return (
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
@@ -207,9 +222,14 @@ export default function AdminDashboard() {
             <LayoutDashboard className="mr-2 h-5 w-5" />
             Services
           </TabsTrigger>
-          <TabsTrigger value="access" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all">
+          <TabsTrigger value="access" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all relative">
             <Users className="mr-2 h-5 w-5" />
             Admins
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center animate-bounce">
+                {pendingCount}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -396,6 +416,26 @@ export default function AdminDashboard() {
                 </CardTitle>
                 <CardDescription>Manage administrative privileges</CardDescription>
               </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-destructive/20 text-destructive hover:bg-destructive/10">
+                    <UserMinus className="mr-2 h-4 w-4" />
+                    Reset Directory
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-card border-primary/20">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive font-bold uppercase">Reset User Directory?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-muted-foreground">
+                      This will remove all registered accounts except for yours ({ADMIN_EMAIL}). This allows everyone to register fresh.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-secondary/50">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={resetAllOtherUsers} className="bg-destructive text-destructive-foreground">Reset All</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardHeader>
             <CardContent>
               {isAdminsLoading ? <div className="text-center p-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div> : (
@@ -447,7 +487,7 @@ export default function AdminDashboard() {
                           </>
                         )}
                         {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
-                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Master</Badge>
+                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Main Admin</Badge>
                         )}
                       </div>
                     </div>

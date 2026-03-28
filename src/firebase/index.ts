@@ -11,6 +11,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services with hardened settings for restricted environments.
+ * Forcefully enables long-polling to bypass persistent 10s connection timeouts.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -21,7 +22,7 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling and disable stream-based fetching to bypass persistent 10s timeouts.
+        // Force long polling to bypass persistent 10s timeouts in restricted networks.
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,

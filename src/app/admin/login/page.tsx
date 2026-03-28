@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  // Redirection Logic
+  // Redirection & Auto-approval Logic
   useEffect(() => {
     if (!isUserLoading && user) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -55,7 +55,6 @@ export default function AdminLoginPage() {
       } else if (!isUserDataLoading && userData?.approved) {
         router.push('/admin');
       }
-      // If we are here, we are logged in but pending, the UI will show the pending screen
       setIsLoading(false);
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router, firestore]);
@@ -113,9 +112,9 @@ export default function AdminLoginPage() {
       }, { merge: true });
 
       toast({
-        title: isAdmin ? "Master Access Granted" : "Registration Sent",
+        title: isAdmin ? "Admin Access Granted" : "Registration Sent",
         description: isAdmin 
-          ? "Welcome, Administrator." 
+          ? "Welcome back, Admin." 
           : "Access request is pending administrator approval.",
       });
       
@@ -129,6 +128,7 @@ export default function AdminLoginPage() {
     }
   };
 
+  // Connectivity Issue Screen
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
     const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     if (!isAdmin) {
