@@ -2,7 +2,7 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp, FirebaseOptions } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore'
 
@@ -12,7 +12,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services using a robust singleton pattern.
- * This version forces aggressive connectivity settings for Firestore to avoid timeouts.
+ * Focuses on forcing long-polling for environments with restricted streaming capabilities.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -20,32 +20,25 @@ export function initializeFirebase() {
     if (apps.length > 0) {
       appInstance = apps[0];
     } else {
-      try {
-        appInstance = initializeApp(firebaseConfig);
-      } catch (e) {
-        throw e;
-      }
+      appInstance = initializeApp(firebaseConfig);
     }
   }
 
   if (!firestoreInstance) {
     try {
-      // Force long polling on the client to avoid connectivity issues (like the 10s timeout)
-      // in restricted cloud or proxy environments.
+      // In the browser, we use initializeFirestore to force long polling.
+      // This is crucial for environments that block or timeout standard WebSocket/Streaming connections.
       if (typeof window !== 'undefined') {
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,
-          // Explicitly setting host can sometimes bypass proxy handshake delays
-          host: 'firestore.googleapis.com',
-          ssl: true,
         });
       } else {
-        // Fallback for SSR/Node environment
+        // For Server-Side Rendering (SSR)
         firestoreInstance = getFirestore(appInstance);
       }
     } catch (e) {
-      // If initialization fails, fallback to standard getter
+      // If initializeFirestore fails (e.g., already initialized), fallback to getFirestore
       firestoreInstance = getFirestore(appInstance);
     }
   }
