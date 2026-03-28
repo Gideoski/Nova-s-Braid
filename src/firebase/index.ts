@@ -2,7 +2,7 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore'
 
@@ -12,9 +12,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services using a robust singleton pattern.
- * This version supports both client-side and server-side rendering (SSR) by 
- * ensuring services are available during Node.js execution while keeping 
- * browser-specific optimizations (like long polling) for the client.
+ * This version forces aggressive connectivity settings for Firestore to avoid timeouts.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -25,7 +23,6 @@ export function initializeFirebase() {
       try {
         appInstance = initializeApp(firebaseConfig);
       } catch (e) {
-        console.error("Firebase App initialization failed:", e);
         throw e;
       }
     }
@@ -33,17 +30,22 @@ export function initializeFirebase() {
 
   if (!firestoreInstance) {
     try {
-      // Force long polling on the client to avoid connectivity issues in restricted environments.
-      // This is skipped on the server (Node.js) as it relies on browser-specific networking.
+      // Force long polling on the client to avoid connectivity issues (like the 10s timeout)
+      // in restricted cloud or proxy environments.
       if (typeof window !== 'undefined') {
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,
+          // Explicitly setting host can sometimes bypass proxy handshake delays
+          host: 'firestore.googleapis.com',
+          ssl: true,
         });
       } else {
+        // Fallback for SSR/Node environment
         firestoreInstance = getFirestore(appInstance);
       }
     } catch (e) {
+      // If initialization fails, fallback to standard getter
       firestoreInstance = getFirestore(appInstance);
     }
   }
@@ -61,7 +63,6 @@ export function initializeFirebase() {
 
 /**
  * Helper function to retrieve initialized SDKs. 
- * Delegates to initializeFirebase for consistent initialization.
  */
 export function getSdks(firebaseApp: FirebaseApp) {
   return initializeFirebase();
