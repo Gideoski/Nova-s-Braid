@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
     const code = error?.code || '';
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'An account with this email already exists and is currently pending approval.';
+        return 'This email address is already registered in our administrative records.';
       case 'auth/invalid-email':
         return 'The email format provided is not recognized. Please verify and try again.';
       case 'auth/weak-password':
@@ -69,10 +69,7 @@ export default function AdminLoginPage() {
     
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
-        toast({
-          title: "Session Initiated",
-          description: "Verifying administrative permissions...",
-        });
+        // Redirection will be handled by useEffect once userData is loaded
       })
       .catch((error: any) => {
         setIsLoading(false);
@@ -111,14 +108,13 @@ export default function AdminLoginPage() {
           : "Your request is pending. Please contact the administrator for approval.",
       });
       
-    } catch (error: any) => {
+    } catch (error: any) {
       setIsLoading(false);
       
       // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
-        // Just try to sign them in instead to trigger the "Pending" view
+        // Sign them in so the app can check their "approved" status
         signInWithEmailAndPassword(auth, email, password).catch(() => {
-           // If sign in fails too, just show the specific error
            toast({
             variant: 'destructive',
             title: 'Account Exists',
