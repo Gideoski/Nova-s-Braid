@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDocs, collection, query, limit } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,11 +39,13 @@ export default function AdminLoginPage() {
   // Handle Redirection & Auto-Approval for Super Admin
   useEffect(() => {
     if (!isUserLoading && user) {
+      // Ensure the button loading state is cleared once we have a user session
+      setIsLoading(false);
+
       const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
       if (isSuperAdmin) {
         // Super Admin is always authorized immediately in UI
-        // Attempt background approval if not already approved
         if (!isUserDataLoading && (!userData || !userData.approved)) {
           const userRef = doc(firestore!, 'users', user.uid);
           setDocumentNonBlocking(userRef, {
@@ -111,7 +113,7 @@ export default function AdminLoginPage() {
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isSuperAdmin, // Super Admin self-approves
+        approved: isSuperAdmin, 
         createdAt: new Date().toISOString()
       }, { merge: true });
 
@@ -125,7 +127,6 @@ export default function AdminLoginPage() {
     } catch (error: any) {
       setIsLoading(false);
       if (error.code === 'auth/email-already-in-use') {
-        // If account exists, just switch to login tab or show pending screen
         toast({
           title: "Account Exists",
           description: "This email is already registered. Please sign in.",
@@ -140,9 +141,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Show a specialized screen if Firestore times out
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
-    // Only block if we aren't the Super Admin (who can bypass via token email)
     const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
     if (!isSuperAdmin) {
       return (

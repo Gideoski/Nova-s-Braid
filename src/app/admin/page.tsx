@@ -52,7 +52,6 @@ export default function AdminDashboard() {
 
   const adminsRef = useMemoFirebase(() => {
     // CRITICAL: Only attempt to list users if we are authenticated and authorized
-    // This prevents "Missing or insufficient permissions" errors on component mount
     if (!firestore || !user || !isAuthorized) return null;
     return collection(firestore, 'users');
   }, [firestore, user, isAuthorized]);
@@ -415,7 +414,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {admin.id !== user?.uid && (
+                        {admin.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && (
                           <>
                             <Button 
                               variant={admin.approved ? "outline" : "default"} 
@@ -447,7 +446,7 @@ export default function AdminDashboard() {
                             </AlertDialog>
                           </>
                         )}
-                        {admin.id === user?.uid && (
+                        {admin.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() && (
                           <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Master</Badge>
                         )}
                       </div>
