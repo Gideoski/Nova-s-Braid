@@ -56,9 +56,13 @@ export default function ServicesPage() {
 
       <Tabs defaultValue={categories[0].id} className="w-full">
         <div className="overflow-x-auto pb-4">
-          <TabsList className="inline-flex w-max min-w-full md:grid md:grid-cols-4 lg:grid-cols-7 mb-8">
+          <TabsList className="inline-flex w-max min-w-full md:grid md:grid-cols-4 lg:grid-cols-7 mb-8 p-1 bg-secondary/30 border border-primary/5">
             {categories.map((category) => (
-              <TabsTrigger key={category.id} value={category.id!} className="px-6">
+              <TabsTrigger 
+                key={category.id} 
+                value={category.id!} 
+                className="px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold"
+              >
                 {category.name}
               </TabsTrigger>
             ))}

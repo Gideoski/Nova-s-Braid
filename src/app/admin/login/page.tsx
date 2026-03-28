@@ -174,9 +174,19 @@ export default function AdminLoginPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 border border-primary/10">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Register</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 border border-primary/10 p-1">
+                <TabsTrigger 
+                  value="login"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all"
+                >
+                  Login
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all"
+                >
+                  Register
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="login">
