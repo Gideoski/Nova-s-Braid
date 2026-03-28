@@ -86,6 +86,10 @@ export default function AdminDashboard() {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', uid);
     updateDocumentNonBlocking(userRef, { approved: !currentStatus });
+    toast({
+      title: !currentStatus ? "User Approved" : "Access Revoked",
+      description: `Permissions updated successfully.`,
+    });
   };
 
   const deleteUser = (uid: string) => {

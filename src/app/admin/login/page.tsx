@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, WifiOff } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, WifiOff, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
   
   const auth = useAuth();
   const firestore = useFirestore();
@@ -44,7 +45,8 @@ export default function AdminLoginPage() {
       const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // Handle missing Firestore record (e.g. after a directory reset)
-      if (!isUserDataLoading && !userData) {
+      // We only do this if there's no error, to avoid overwriting on transient permission issues
+      if (!isUserDataLoading && !userData && !userDocError) {
         const userRef = doc(firestore!, 'users', user.uid);
         setDocumentNonBlocking(userRef, {
           email: user.email,
@@ -53,14 +55,16 @@ export default function AdminLoginPage() {
         }, { merge: true });
       }
 
-      if (isUserAdmin) {
-        router.push('/admin');
-      } else if (!isUserDataLoading && userData?.approved) {
-        router.push('/admin');
+      // Check for authorized state
+      if (isUserAdmin || (userData?.approved === true)) {
+        setIsAuthorizing(true);
+        const timer = setTimeout(() => {
+          router.push('/admin');
+        }, 800);
+        return () => clearTimeout(timer);
       }
-      setIsLoading(false);
     }
-  }, [user, userData, isUserLoading, isUserDataLoading, router, firestore]);
+  }, [user, userData, isUserLoading, isUserDataLoading, userDocError, router, firestore]);
 
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
@@ -140,7 +144,7 @@ export default function AdminLoginPage() {
             <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
               <WifiOff className="h-10 w-10 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
+            <CardTitle className="text-2xl font-bold text-destructive uppercase tracking-tighter">Network Delay</CardTitle>
             <CardDescription className="mt-4">
               The security server is taking too long to respond. This is common in some network environments.
             </CardDescription>
@@ -160,11 +164,13 @@ export default function AdminLoginPage() {
 
   const isPending = !isUserLoading && !isUserDataLoading && user && !isAdmin && (!userData || userData.approved === false);
 
-  if (isUserLoading || (user && isUserDataLoading && !isAdmin)) {
+  if (isUserLoading || (user && isUserDataLoading && !isAdmin) || isAuthorizing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Verifying Access...</p>
+        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">
+          {isAuthorizing ? 'Access Granted. Redirecting...' : 'Verifying Access...'}
+        </p>
       </div>
     );
   }
@@ -179,14 +185,23 @@ export default function AdminLoginPage() {
             </div>
             <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
             <CardDescription className="text-muted-foreground mt-4">
-              Account <strong>{user.email}</strong> is registered. Access must be authorized by an Admin.
+              Account <strong>{user.email}</strong> is registered. Access must be authorized by the Admin.
             </CardDescription>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg text-xs text-center text-muted-foreground italic">
+              The dashboard will refresh automatically once approved.
+            </div>
+          </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button variant="outline" className="w-full border-primary/20" onClick={() => { setIsLoading(false); auth.signOut(); }}>
+            <Button variant="outline" className="w-full border-primary/20 group" onClick={() => window.location.reload()}>
+              <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+              Check Authorization
+            </Button>
+            <Button variant="ghost" className="w-full text-muted-foreground text-xs uppercase tracking-widest hover:text-primary" onClick={() => { setIsLoading(false); auth.signOut(); }}>
               Log Out
             </Button>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center mt-2">
               Protocol: Secure Access Active
             </p>
           </CardFooter>
