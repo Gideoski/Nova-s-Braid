@@ -12,18 +12,11 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services using a robust singleton pattern.
- * This ensures that Firestore is configured with long polling correctly
- * and prevents multiple initialization attempts which can lead to connection instability.
+ * This version supports both client-side and server-side rendering (SSR) by 
+ * ensuring services are available during Node.js execution while keeping 
+ * browser-specific optimizations (like long polling) for the client.
  */
 export function initializeFirebase() {
-  if (typeof window === 'undefined') {
-    return {
-      firebaseApp: null as any,
-      auth: null as any,
-      firestore: null as any
-    };
-  }
-
   if (!appInstance) {
     const apps = getApps();
     if (apps.length > 0) {
@@ -40,14 +33,17 @@ export function initializeFirebase() {
 
   if (!firestoreInstance) {
     try {
-      // Force long polling to avoid connectivity issues in restricted environments.
-      // initializeFirestore must be called before any other firestore methods.
-      firestoreInstance = initializeFirestore(appInstance, {
-        experimentalForceLongPolling: true,
-        experimentalAutoDetectLongPolling: false, // Explicitly disable auto-detection to force it
-      });
+      // Force long polling on the client to avoid connectivity issues in restricted environments.
+      // This is skipped on the server (Node.js) as it relies on browser-specific networking.
+      if (typeof window !== 'undefined') {
+        firestoreInstance = initializeFirestore(appInstance, {
+          experimentalForceLongPolling: true,
+          experimentalAutoDetectLongPolling: false,
+        });
+      } else {
+        firestoreInstance = getFirestore(appInstance);
+      }
     } catch (e) {
-      // Fallback to getFirestore if initializeFirestore was already called elsewhere
       firestoreInstance = getFirestore(appInstance);
     }
   }
