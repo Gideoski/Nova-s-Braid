@@ -126,15 +126,18 @@ export default function AdminDashboard() {
     const category = categories.find(c => c.id === catId);
     if (!category) return;
 
-    const updatedServices = category.services.map(s => ({
-      ...s,
-      price: s.originalPrice || s.price,
-      originalPrice: undefined
-    }));
+    const updatedServices = category.services.map(s => {
+      // Create a copy without the originalPrice field instead of setting it to undefined
+      const { originalPrice, ...rest } = s;
+      return {
+        ...rest,
+        price: originalPrice || s.price
+      };
+    });
 
     const catRef = doc(firestore, 'serviceCategories', catId);
-    // Explicitly delete originalPrice fields by replacing the services array
     setDocumentNonBlocking(catRef, { ...category, services: updatedServices }, { merge: true });
+    setDiscount(null);
   };
 
   if (isLoading) return <div className="p-12 text-center">Loading dashboard...</div>;
@@ -200,7 +203,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => setDiscount({ catId: category.id, percentage: '' })}
+                  onClick={() => setDiscount({ catId: category.id!, percentage: '' })}
                 >
                   <Percent className="mr-2 h-4 w-4" />
                   Discount
@@ -238,8 +241,8 @@ export default function AdminDashboard() {
                     value={discount.percentage} 
                     onChange={e => setDiscount({ ...discount, percentage: e.target.value })}
                   />
-                  <Button size="sm" onClick={() => applyDiscount(category.id)}>Apply</Button>
-                  <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id)}>Clear All Discounts</Button>
+                  <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
+                  <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Clear All Discounts</Button>
                   <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
                 </div>
               )}
@@ -283,7 +286,7 @@ export default function AdminDashboard() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => setEditingService({ catId: category.id, serviceIndex: idx, name: service.name, price: service.price.toString() })}
+                            onClick={() => setEditingService({ catId: category.id!, serviceIndex: idx, name: service.name, price: service.price.toString() })}
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
@@ -330,11 +333,11 @@ export default function AdminDashboard() {
                     value={newStyle.price}
                     onChange={e => setNewStyle({...newStyle, price: e.target.value})}
                   />
-                  <Button onClick={() => addStyle(category.id)}>Add Style</Button>
+                  <Button onClick={() => addStyle(category.id!)}>Add Style</Button>
                   <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
                 </div>
               ) : (
-                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => setNewStyle({ catId: category.id, name: '', price: '' })}>
+                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => setNewStyle({ catId: category.id!, name: '', price: '' })}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add New Style to {category.name}
                 </Button>
