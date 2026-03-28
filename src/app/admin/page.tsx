@@ -44,8 +44,8 @@ export default function AdminDashboard() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  const isAuthorized = isAdmin || (userData && userData.approved);
+  const isMainAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAuthorized = isMainAdmin || (userData && userData.approved);
 
   const categoriesRef = useMemoFirebase(() => {
     if (!firestore || !user || !isAuthorized) return null;
@@ -72,11 +72,11 @@ export default function AdminDashboard() {
       return;
     }
     if (!isUserLoading && !isUserDataLoading && user) {
-      if (!isAdmin && (!userData || !userData.approved)) {
+      if (!isMainAdmin && (!userData || !userData.approved)) {
         router.replace('/admin/login');
       }
     }
-  }, [user, userData, isUserLoading, isUserDataLoading, router, isAdmin]);
+  }, [user, userData, isUserLoading, isUserDataLoading, router, isMainAdmin]);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     const newStatus = !currentStatus;
 
     try {
-      // Use setDoc directly with await to ensure it is flushed to the database
+      // Use setDoc directly with await to ensure it is flushed to the database permanently
       await setDoc(userRef, { 
         approved: newStatus,
         email: email,
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteUser = (uid: string) => {
+  const deleteUser = async (uid: string) => {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', uid);
     deleteDocumentNonBlocking(userRef);
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
     setDiscount(null);
   };
 
-  if (isUserLoading || (user && isUserDataLoading && !isAdmin)) {
+  if (isUserLoading || (user && isUserDataLoading && !isMainAdmin)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -251,9 +251,9 @@ export default function AdminDashboard() {
             <Users className="mr-2 h-5 w-5" />
             Admins
             {pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center animate-bounce">
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center animate-bounce p-0">
                 {pendingCount}
-              </span>
+              </Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -466,7 +466,7 @@ export default function AdminDashboard() {
               {isAdminsLoading ? <div className="text-center p-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div> : (
                 <div className="grid gap-4">
                   {adminUsers?.map((admin: any) => (
-                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20' : 'bg-secondary/20'}`}>
+                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20' : 'bg-yellow-500/10 text-yellow-500'}`}>
                       <div className="flex items-center gap-4">
                         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${admin.approved ? 'bg-primary/20 text-primary' : 'bg-yellow-500/10 text-yellow-500'}`}>
                           {admin.approved ? <ShieldCheck className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}

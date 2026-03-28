@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, WifiOff, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
 const ADMIN_EMAIL = 'gideonjackbara@gmail.com';
@@ -39,30 +38,33 @@ export default function AdminLoginPage() {
 
   const isMainAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // Redirection & Auto-approval / Re-registration Logic
+  // Redirection & Auto-registration Logic
   useEffect(() => {
-    // Only proceed if auth state is settled and we aren't waiting for the document fetch
     if (!isUserLoading && user && !isUserDataLoading) {
-      const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const isUserMainAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
-      // Handle missing Firestore record (e.g. after a directory reset)
-      // We only run this if we are SURE the data is missing (not loading)
-      if (!userData && !userDocError) {
-        const userRef = doc(firestore!, 'users', user.uid);
-        setDocumentNonBlocking(userRef, {
-          email: user.email,
-          approved: isUserAdmin, 
-          createdAt: new Date().toISOString()
-        }, { merge: true });
+      // If we are sure the user record is missing, create it.
+      // We use a direct check to ensure we don't overwrite existing approval status.
+      if (!userData && !userDocError && firestore) {
+        const checkAndCreate = async () => {
+          const userRef = doc(firestore, 'users', user.uid);
+          const snap = await getDoc(userRef);
+          
+          if (!snap.exists()) {
+            await setDoc(userRef, {
+              email: user.email,
+              approved: isUserMainAdmin, 
+              createdAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        };
+        checkAndCreate();
       }
 
       // Check for authorized state
-      if (isUserAdmin || (userData?.approved === true)) {
+      if (isUserMainAdmin || (userData?.approved === true)) {
         setIsAuthorizing(true);
-        const timeout = setTimeout(() => {
-          router.replace('/admin');
-        }, 100);
-        return () => clearTimeout(timeout);
+        router.replace('/admin');
       }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, userDocError, router, firestore]);
@@ -88,19 +90,20 @@ export default function AdminLoginPage() {
     }
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    signInWithEmailAndPassword(auth, email, password)
-      .catch((error: any) => {
-        setIsLoading(false);
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: getProfessionalErrorMessage(error),
-        });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      setIsLoading(false);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: getProfessionalErrorMessage(error),
       });
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -110,18 +113,18 @@ export default function AdminLoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
-      const isUserAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const isUserMainAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       const userRef = doc(firestore!, 'users', newUser.uid);
-      setDocumentNonBlocking(userRef, {
+      await setDoc(userRef, {
         email: email,
-        approved: isUserAdmin, 
+        approved: isUserMainAdmin, 
         createdAt: new Date().toISOString()
       }, { merge: true });
 
       toast({
-        title: isUserAdmin ? "Admin Access Granted" : "Registration Sent",
-        description: isUserAdmin 
+        title: isUserMainAdmin ? "Admin Access Granted" : "Registration Sent",
+        description: isUserMainAdmin 
           ? "Welcome back, Admin." 
           : "Access request is pending approval.",
       });
