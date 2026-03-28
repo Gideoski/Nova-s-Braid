@@ -2,43 +2,39 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, FirebaseApp, FirebaseOptions } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore'
+import { initializeFirestore, Firestore, getFirestore } from 'firebase/firestore';
 
 let appInstance: FirebaseApp | null = null;
 let firestoreInstance: Firestore | null = null;
 let authInstance: Auth | null = null;
 
 /**
- * Initializes Firebase services using a robust singleton pattern.
- * Focuses on forcing long-polling for environments with restricted streaming capabilities.
+ * Initializes Firebase services with forced long-polling to bypass
+ * connectivity issues in restricted cloud environments.
  */
 export function initializeFirebase() {
   if (!appInstance) {
     const apps = getApps();
-    if (apps.length > 0) {
-      appInstance = apps[0];
-    } else {
-      appInstance = initializeApp(firebaseConfig);
-    }
+    appInstance = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
   }
 
   if (!firestoreInstance) {
-    try {
-      // In the browser, we use initializeFirestore to force long polling.
-      // This is crucial for environments that block or timeout standard WebSocket/Streaming connections.
-      if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
+      // On the client, we MUST use initializeFirestore to force long polling.
+      // This is the most reliable way to prevent the "10-second timeout" error.
+      try {
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
-          experimentalAutoDetectLongPolling: false,
+          useFetchStreams: false, // Further stabilize connection by disabling streams
         });
-      } else {
-        // For Server-Side Rendering (SSR)
+      } catch (e) {
+        // If already initialized (common in hot-reload), get current instance
         firestoreInstance = getFirestore(appInstance);
       }
-    } catch (e) {
-      // If initializeFirestore fails (e.g., already initialized), fallback to getFirestore
+    } else {
+      // Server-side context
       firestoreInstance = getFirestore(appInstance);
     }
   }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
@@ -32,7 +33,7 @@ export default function AdminLoginPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
   // Handle Redirection
   useEffect(() => {
@@ -58,6 +59,8 @@ export default function AdminLoginPage() {
         return 'The credentials provided are incorrect. Access denied.';
       case 'auth/too-many-requests':
         return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
+      case 'unavailable':
+        return 'The security server is currently unreachable. Please check your internet connection.';
       default:
         return 'An internal authentication error occurred. Please try again later.';
     }
@@ -86,12 +89,13 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     
     try {
-      // Check if any users exist. If not, the first user is the super admin.
-      const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
-      const isFirstUser = usersSnap.empty;
-
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
+
+      // Check if any users exist. If not, the first user is the super admin.
+      // We use a query with a limit for efficiency
+      const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
+      const isFirstUser = usersSnap.empty;
 
       // Create the user document in Firestore
       const userRef = doc(firestore!, 'users', newUser.uid);
@@ -109,21 +113,22 @@ export default function AdminLoginPage() {
       });
       
     } catch (error: any) {
-      setIsLoading(false);
-      
       // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
-        // Sign them in so the app can check their "approved" status
-        signInWithEmailAndPassword(auth, email, password).catch(() => {
+        // Professional approach: attempt sign-in. If successful, 
+        // the UI will show the "Pending" screen via the useUser/useDoc hooks.
+        signInWithEmailAndPassword(auth, email, password).catch((signInError: any) => {
+           setIsLoading(false);
            toast({
             variant: 'destructive',
-            title: 'Account Exists',
-            description: getProfessionalErrorMessage(error),
+            title: 'Authentication Failed',
+            description: getProfessionalErrorMessage(signInError),
           });
         });
         return;
       }
 
+      setIsLoading(false);
       toast({
         variant: 'destructive',
         title: 'Provisioning Failed',
@@ -131,6 +136,30 @@ export default function AdminLoginPage() {
       });
     }
   };
+
+  // If there's a connectivity error, show a more helpful screen
+  if (userDocError && userDocError.message?.includes('unavailable')) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
+          <CardHeader className="text-center">
+            <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <WifiOff className="h-10 w-10 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-destructive">Connection Lost</CardTitle>
+            <CardDescription className="mt-4">
+              We are unable to reach the administrative server. This is often due to a poor internet connection or strict firewall.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Retry Connection
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   if (isUserLoading || (user && isUserDataLoading)) {
     return (
