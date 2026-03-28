@@ -8,41 +8,41 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
     }
     
-    // Helper to check if the current user is the hardcoded super admin
-    function isSuperAdminEmail() {
+    // Helper to check if the current user is the hardcoded admin
+    function isAdminEmail() {
       return request.auth != null && request.auth.token.email.lower() == 'gideonjackbara@gmail.com';
     }
 
     match /appointments/{appointmentId} {
       allow get, list: if true;
       allow create: if true;
-      allow update, delete: if isApprovedAdmin() || isSuperAdminEmail();
+      allow update, delete: if isApprovedAdmin() || isAdminEmail();
     }
 
     match /serviceCategories/{categoryId} {
       allow get, list: if true;
-      allow write: if isApprovedAdmin() || isSuperAdminEmail();
+      allow write: if isApprovedAdmin() || isAdminEmail();
     }
 
     match /users/{userId} {
       // Allow anyone to create their own record during signup
-      // And allow the Super Admin to update their own or others' approval status
+      // And allow the Admin to update their own or others' approval status
       allow create: if request.auth != null && request.auth.uid == userId;
       
       // Allow users to read their own profile, or admins to read any profile
-      allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin() || isSuperAdminEmail());
+      allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin() || isAdminEmail());
       
-      // Allow the Super Admin to update any record (including their own)
+      // Allow the Admin to update any record (including their own)
       allow update: if request.auth != null && (
-        isSuperAdminEmail() || 
+        isAdminEmail() || 
         (isApprovedAdmin() && userId != request.auth.uid)
       );
       
-      // Allow Super Admin or approved admins to delete users
-      allow delete: if isSuperAdminEmail() || (isApprovedAdmin() && userId != request.auth.uid);
+      // Allow Admin or approved admins to delete users
+      allow delete: if isAdminEmail() || (isApprovedAdmin() && userId != request.auth.uid);
       
       // CRITICAL: Allow listing for management
-      allow list: if isApprovedAdmin() || isSuperAdminEmail();
+      allow list: if isApprovedAdmin() || isAdminEmail();
     }
   }
 }

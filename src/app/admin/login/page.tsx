@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
-const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
+const ADMIN_EMAIL = 'gideonjackbara@gmail.com';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -39,10 +39,10 @@ export default function AdminLoginPage() {
   // Redirection Logic
   useEffect(() => {
     if (!isUserLoading && user) {
-      const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
-      if (isSuperAdmin) {
-        // Auto-approve Super Admin if they aren't already
+      if (isAdmin) {
+        // Auto-approve Admin if they aren't already
         if (!isUserDataLoading && (!userData || !userData.approved)) {
           const userRef = doc(firestore!, 'users', user.uid);
           setDocumentNonBlocking(userRef, {
@@ -103,19 +103,19 @@ export default function AdminLoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
-      const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isSuperAdmin, 
+        approved: isAdmin, 
         createdAt: new Date().toISOString()
       }, { merge: true });
 
       toast({
-        title: isSuperAdmin ? "Master Access Granted" : "Registration Sent",
-        description: isSuperAdmin 
-          ? "Welcome, Master Operator." 
+        title: isAdmin ? "Master Access Granted" : "Registration Sent",
+        description: isAdmin 
+          ? "Welcome, Administrator." 
           : "Access request is pending administrator approval.",
       });
       
@@ -130,8 +130,8 @@ export default function AdminLoginPage() {
   };
 
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
-    const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-    if (!isSuperAdmin) {
+    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    if (!isAdmin) {
       return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
           <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
@@ -158,10 +158,10 @@ export default function AdminLoginPage() {
     }
   }
 
-  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-  const isPending = user && (!userData || !userData.approved) && !isSuperAdmin;
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isPending = user && (!userData || !userData.approved) && !isAdmin;
 
-  if (isUserLoading || (user && isUserDataLoading && !isPending && !isSuperAdmin)) {
+  if (isUserLoading || (user && isUserDataLoading && !isPending && !isAdmin)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -180,7 +180,7 @@ export default function AdminLoginPage() {
             </div>
             <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
             <CardDescription className="text-muted-foreground mt-4">
-              Account <strong>{user.email}</strong> is registered. Access must be authorized by a Super Admin.
+              Account <strong>{user.email}</strong> is registered. Access must be authorized by an Admin.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">

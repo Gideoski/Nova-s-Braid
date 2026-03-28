@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 
-const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
+const ADMIN_EMAIL = 'gideonjackbara@gmail.com';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -42,8 +42,8 @@ export default function AdminDashboard() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userDocRef);
 
-  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-  const isAuthorized = isSuperAdmin || (userData && userData.approved);
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAuthorized = isAdmin || (userData && userData.approved);
 
   const categoriesRef = useMemoFirebase(() => {
     if (!firestore || !user || !isAuthorized) return null;
@@ -51,10 +51,10 @@ export default function AdminDashboard() {
   }, [firestore, user, isAuthorized]);
 
   const adminsRef = useMemoFirebase(() => {
-    // CRITICAL: Only attempt to list users if we are authenticated and authorized
-    if (!firestore || !user || !isAuthorized) return null;
+    // CRITICAL: Only attempt to list users if we are authenticated, authorized, and auth loading is done
+    if (!firestore || isUserLoading || !user || !isAuthorized) return null;
     return collection(firestore, 'users');
-  }, [firestore, user, isAuthorized]);
+  }, [firestore, user, isAuthorized, isUserLoading]);
 
   const { data: categories, isLoading: isDataLoading } = useCollection<ServiceCategory>(categoriesRef);
   const { data: adminUsers, isLoading: isAdminsLoading } = useCollection<any>(adminsRef);
@@ -72,11 +72,11 @@ export default function AdminDashboard() {
     }
 
     if (!isUserLoading && !isUserDataLoading && user) {
-      if (!isSuperAdmin && (!userData || !userData.approved)) {
+      if (!isAdmin && (!userData || !userData.approved)) {
         router.push('/admin/login');
       }
     }
-  }, [user, userData, isUserLoading, isUserDataLoading, router, isSuperAdmin]);
+  }, [user, userData, isUserLoading, isUserDataLoading, router, isAdmin]);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
     setDiscount(null);
   };
 
-  if (isUserLoading || (user && isUserDataLoading && !isSuperAdmin)) {
+  if (isUserLoading || (user && isUserDataLoading && !isAdmin)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
     <div className="container mx-auto py-12 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-primary uppercase sparkle-text">Control Center</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-primary uppercase sparkle-text">Admin Center</h1>
           <p className="text-muted-foreground font-light italic mt-1">Operator: {user?.email}</p>
         </div>
         <div className="flex gap-2">
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {admin.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && (
+                        {admin.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase() && (
                           <>
                             <Button 
                               variant={admin.approved ? "outline" : "default"} 
@@ -446,12 +446,17 @@ export default function AdminDashboard() {
                             </AlertDialog>
                           </>
                         )}
-                        {admin.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() && (
+                        {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
                           <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Master</Badge>
                         )}
                       </div>
                     </div>
                   ))}
+                  {(!adminUsers || adminUsers.length === 0) && (
+                    <div className="text-center p-12 text-muted-foreground italic">
+                      No other registered accounts found.
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
