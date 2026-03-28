@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -10,34 +11,43 @@ let firestoreInstance: Firestore | null = null;
 let authInstance: Auth | null = null;
 
 /**
- * Initializes Firebase services using a singleton pattern.
- * This ensures that services like Firestore are configured correctly (e.g., long polling)
- * and that we don't attempt to re-initialize an already running app.
+ * Initializes Firebase services using a robust singleton pattern.
+ * This ensures that Firestore is configured with long polling correctly
+ * and prevents multiple initialization attempts which can lead to connection instability.
  */
 export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return {
+      firebaseApp: null as any,
+      auth: null as any,
+      firestore: null as any
+    };
+  }
+
   if (!appInstance) {
-    if (getApps().length > 0) {
-      appInstance = getApp();
+    const apps = getApps();
+    if (apps.length > 0) {
+      appInstance = apps[0];
     } else {
       try {
-        // Attempt to initialize via Firebase App Hosting environment variables
-        appInstance = initializeApp();
-      } catch (e) {
-        // Fallback to config object for local development
         appInstance = initializeApp(firebaseConfig);
+      } catch (e) {
+        console.error("Firebase App initialization failed:", e);
+        throw e;
       }
     }
   }
 
   if (!firestoreInstance) {
     try {
-      // Force long polling to avoid connectivity issues in restricted environments (like Cloud Workstations)
-      // This is the recommended setting for stable connections in the prototype environment.
+      // Force long polling to avoid connectivity issues in restricted environments.
+      // initializeFirestore must be called before any other firestore methods.
       firestoreInstance = initializeFirestore(appInstance, {
         experimentalForceLongPolling: true,
+        experimentalAutoDetectLongPolling: false, // Explicitly disable auto-detection to force it
       });
     } catch (e) {
-      // If already initialized or initialization fails, fallback to getFirestore
+      // Fallback to getFirestore if initializeFirestore was already called elsewhere
       firestoreInstance = getFirestore(appInstance);
     }
   }
