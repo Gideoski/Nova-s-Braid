@@ -492,9 +492,6 @@ export default function AdminDashboard() {
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-bold">{admin.email}</p>
-                            {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
-                              <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Main Admin</Badge>
-                            )}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant={admin.approved ? "default" : "outline"} className={`text-[9px] uppercase tracking-tighter ${!admin.approved && 'text-yellow-500 border-yellow-500/30'}`}>
