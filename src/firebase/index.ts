@@ -11,7 +11,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Initializes Firebase services with hardened settings for restricted environments.
- * Forcefully enables long-polling to bypass persistent 10s connection timeouts.
+ * Forcefully enables long-polling and explicit host configuration to bypass persistent 10s timeouts.
  */
 export function initializeFirebase() {
   if (!appInstance) {
@@ -22,10 +22,12 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling to bypass persistent 10s timeouts in restricted networks.
+        // Force long polling and explicit settings to bypass persistent 10s timeouts in restricted networks.
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,
+          host: 'firestore.googleapis.com',
+          ssl: true,
         });
       } catch (e) {
         firestoreInstance = getFirestore(appInstance);

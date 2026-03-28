@@ -36,21 +36,22 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  // Redirection & Auto-approval Logic
+  // Redirection & Auto-approval / Re-registration Logic
   useEffect(() => {
     if (!isUserLoading && user) {
       const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
+      // Handle missing Firestore record (e.g. after a directory reset)
+      if (!isUserDataLoading && !userData) {
+        const userRef = doc(firestore!, 'users', user.uid);
+        setDocumentNonBlocking(userRef, {
+          email: user.email,
+          approved: isAdmin, // Only auto-approve the Main Admin
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
       if (isAdmin) {
-        // Auto-approve Admin if they aren't already
-        if (!isUserDataLoading && (!userData || !userData.approved)) {
-          const userRef = doc(firestore!, 'users', user.uid);
-          setDocumentNonBlocking(userRef, {
-            email: user.email,
-            approved: true,
-            createdAt: userData?.createdAt || new Date().toISOString()
-          }, { merge: true });
-        }
         router.push('/admin');
       } else if (!isUserDataLoading && userData?.approved) {
         router.push('/admin');
@@ -66,7 +67,7 @@ export default function AdminLoginPage() {
     }
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'This account is already registered. Please sign in.';
+        return 'Email already registered. Please Login instead.';
       case 'auth/invalid-email':
         return 'Invalid email format.';
       case 'auth/weak-password':
@@ -130,32 +131,29 @@ export default function AdminLoginPage() {
 
   // Connectivity Issue Screen
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
-    const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    if (!isAdmin) {
-      return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-          <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
-            <CardHeader className="text-center">
-              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-                <WifiOff className="h-10 w-10 text-destructive" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
-              <CardDescription className="mt-4">
-                The security server is taking too long to respond. This is common in some network environments.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="flex flex-col gap-4">
-              <Button className="w-full" onClick={() => window.location.reload()}>
-                Retry Connection
-              </Button>
-              <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
-                Switch Account
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      );
-    }
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
+          <CardHeader className="text-center">
+            <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <WifiOff className="h-10 w-10 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
+            <CardDescription className="mt-4">
+              The security server is taking too long to respond. This is common in some network environments.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex flex-col gap-4">
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Retry Connection
+            </Button>
+            <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
+              Switch Account
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
   }
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();

@@ -104,7 +104,7 @@ export default function AdminDashboard() {
     });
     toast({
       title: "Directory Refreshed",
-      description: "All other registered accounts have been removed.",
+      description: "Permissions cleared. Users can now Login to appear as Pending again.",
     });
   };
 
@@ -427,7 +427,7 @@ export default function AdminDashboard() {
                   <AlertDialogHeader>
                     <AlertDialogTitle className="text-destructive font-bold uppercase">Reset User Directory?</AlertDialogTitle>
                     <AlertDialogDescription className="text-muted-foreground">
-                      This will remove all registered accounts except for yours ({ADMIN_EMAIL}). This allows everyone to register fresh.
+                      This will remove permissions for all users except you ({ADMIN_EMAIL}). Users can then log in again to show up as "Pending."
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -475,7 +475,7 @@ export default function AdminDashboard() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-destructive uppercase font-bold">Remove User?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Completely delete {admin.email}.
+                                    Completely delete {admin.email} from the directory.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
