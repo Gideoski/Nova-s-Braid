@@ -21,8 +21,7 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling to bypass restrictive proxies/firewalls.
-        // This is critical to avoid the "10 second timeout" error.
+        // Force long polling and disable stream-based fetching to bypass persistent 10s timeouts.
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,

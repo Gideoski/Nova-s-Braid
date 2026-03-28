@@ -26,13 +26,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       // Allow anyone to create their own record during signup
+      // And allow the Super Admin to update their own or others' approval status
       allow create: if request.auth != null && request.auth.uid == userId;
       
       // Allow users to read their own profile, or admins to read any profile
       allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin() || isSuperAdminEmail());
       
       // Allow the Super Admin to update any record (including their own)
-      // Allow approved admins to update other users
       allow update: if request.auth != null && (
         isSuperAdminEmail() || 
         (isApprovedAdmin() && userId != request.auth.uid)
@@ -41,7 +41,7 @@ service cloud.firestore {
       // Allow Super Admin or approved admins to delete users
       allow delete: if isSuperAdminEmail() || (isApprovedAdmin() && userId != request.auth.uid);
       
-      // CRITICAL: Allow the Super Admin to list users so they can approve them
+      // CRITICAL: Allow listing for management
       allow list: if isApprovedAdmin() || isSuperAdminEmail();
     }
   }

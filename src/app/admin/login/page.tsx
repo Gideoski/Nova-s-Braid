@@ -36,16 +36,13 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  // Handle Redirection & Auto-Approval for Super Admin
+  // Redirection Logic
   useEffect(() => {
     if (!isUserLoading && user) {
-      // Ensure the button loading state is cleared once we have a user session
-      setIsLoading(false);
-
       const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
       if (isSuperAdmin) {
-        // Super Admin is always authorized immediately in UI
+        // Auto-approve Super Admin if they aren't already
         if (!isUserDataLoading && (!userData || !userData.approved)) {
           const userRef = doc(firestore!, 'users', user.uid);
           setDocumentNonBlocking(userRef, {
@@ -56,9 +53,10 @@ export default function AdminLoginPage() {
         }
         router.push('/admin');
       } else if (!isUserDataLoading && userData?.approved) {
-        // Normal approved admin
         router.push('/admin');
       }
+      // If we are here, we are logged in but pending, the UI will show the pending screen
+      setIsLoading(false);
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router, firestore]);
 
@@ -78,8 +76,6 @@ export default function AdminLoginPage() {
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
         return 'Invalid credentials. Access denied.';
-      case 'auth/too-many-requests':
-        return 'Too many attempts. Access restricted.';
       default:
         return 'An error occurred. Please try again.';
     }
@@ -107,7 +103,6 @@ export default function AdminLoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
-
       const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
       const userRef = doc(firestore!, 'users', newUser.uid);
@@ -126,13 +121,6 @@ export default function AdminLoginPage() {
       
     } catch (error: any) {
       setIsLoading(false);
-      if (error.code === 'auth/email-already-in-use') {
-        toast({
-          title: "Account Exists",
-          description: "This email is already registered. Please sign in.",
-        });
-        return;
-      }
       toast({
         variant: 'destructive',
         title: 'Registration Error',
@@ -196,7 +184,7 @@ export default function AdminLoginPage() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">
-            <Button variant="outline" className="w-full border-primary/20" onClick={() => auth.signOut()}>
+            <Button variant="outline" className="w-full border-primary/20" onClick={() => { setIsLoading(false); auth.signOut(); }}>
               Log Out
             </Button>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
