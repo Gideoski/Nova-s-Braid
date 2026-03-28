@@ -21,17 +21,15 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling and disable fetch streams to bypass restrictive proxies/firewalls
+        // Force long polling to bypass restrictive proxies/firewalls
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           useFetchStreams: false,
         });
       } catch (e) {
-        // Fallback for scenarios where Firestore is already initialized (e.g., hot-reload)
         firestoreInstance = getFirestore(appInstance);
       }
     } else {
-      // Server-side initialization
       firestoreInstance = getFirestore(appInstance);
     }
   }
@@ -47,9 +45,6 @@ export function initializeFirebase() {
   };
 }
 
-/**
- * Helper function to retrieve initialized SDKs. 
- */
 export function getSdks(firebaseApp: FirebaseApp) {
   return initializeFirebase();
 }

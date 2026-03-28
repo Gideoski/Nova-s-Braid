@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, getDocs, query, limit } from 'firebase/firestore';
+import { doc, getDocs, collection, query, limit } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
 const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
@@ -36,35 +36,51 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  // Handle Redirection
+  // Handle Redirection & Auto-Approval for Super Admin
   useEffect(() => {
-    if (!isUserLoading && !isUserDataLoading && user && userData) {
-      if (userData.approved) {
-        router.push('/admin');
+    if (!isUserLoading && !isUserDataLoading && user) {
+      const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      
+      if (userData) {
+        if (userData.approved) {
+          router.push('/admin');
+        } else if (isSuperAdmin) {
+          // If super admin is logged in but doc says not approved, fix it immediately
+          const userRef = doc(firestore!, 'users', user.uid);
+          updateDocumentNonBlocking(userRef, { approved: true });
+        }
+      } else if (isSuperAdmin) {
+        // If super admin exists in Auth but not in Firestore, create the doc
+        const userRef = doc(firestore!, 'users', user.uid);
+        setDocumentNonBlocking(userRef, {
+          email: user.email,
+          approved: true,
+          createdAt: new Date().toISOString()
+        }, { merge: true });
       }
     }
-  }, [user, userData, isUserLoading, isUserDataLoading, router]);
+  }, [user, userData, isUserLoading, isUserDataLoading, router, firestore]);
 
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'This email address is already registered in our administrative records.';
+        return 'This email address is already registered. Please login instead.';
       case 'auth/invalid-email':
-        return 'The email format provided is not recognized. Please verify and try again.';
+        return 'Invalid email format. Please verify and try again.';
       case 'auth/weak-password':
-        return 'The provided password does not meet the minimum security requirements.';
+        return 'Password is too weak. Please use at least 6 characters.';
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return 'The credentials provided are incorrect. Access denied.';
+        return 'Invalid credentials. Access denied.';
       case 'auth/too-many-requests':
-        return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
+        return 'Too many attempts. Access temporarily restricted.';
       case 'auth/network-request-failed':
       case 'unavailable':
-        return 'We are unable to reach the security server. This is often due to strict firewall rules or a poor internet connection.';
+        return 'Server connection lost. Please check your internet or retry.';
       default:
-        return 'An internal authentication error occurred. Please try again later.';
+        return 'An internal error occurred. Please try again.';
     }
   };
 
@@ -73,14 +89,11 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     
     signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        // Redirection will be handled by useEffect once userData is loaded
-      })
       .catch((error: any) => {
         setIsLoading(false);
         toast({
           variant: 'destructive',
-          title: 'Authentication Failed',
+          title: 'Login Failed',
           description: getProfessionalErrorMessage(error),
         });
       });
@@ -94,20 +107,17 @@ export default function AdminLoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      // Determine if this user should be auto-approved
       let shouldBeApproved = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
       if (!shouldBeApproved) {
-        // Fallback: check if first user ever
         try {
           const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
           shouldBeApproved = usersSnap.empty;
         } catch (checkError) {
-          console.warn("Could not determine user priority.", checkError);
+          console.warn("Priority check timed out.", checkError);
         }
       }
 
-      // Create the user document in Firestore (non-blocking)
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
@@ -116,14 +126,13 @@ export default function AdminLoginPage() {
       }, { merge: true });
 
       toast({
-        title: shouldBeApproved ? "Master Account Created" : "Access Requested",
+        title: shouldBeApproved ? "Master Access Granted" : "Registration Sent",
         description: shouldBeApproved 
-          ? "You have been granted Master Access. Entering dashboard..." 
-          : "Your registration is complete. Awaiting administrator approval.",
+          ? "Welcome, Master Operator. Entering system..." 
+          : "Your access request is pending administrator approval.",
       });
       
     } catch (error: any) {
-      // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
         signInWithEmailAndPassword(auth, email, password).catch((signInError: any) => {
            setIsLoading(false);
@@ -139,13 +148,12 @@ export default function AdminLoginPage() {
       setIsLoading(false);
       toast({
         variant: 'destructive',
-        title: 'Provisioning Failed',
+        title: 'Registration Error',
         description: getProfessionalErrorMessage(error),
       });
     }
   };
 
-  // If there's a connectivity error, show a more helpful screen
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
@@ -154,9 +162,9 @@ export default function AdminLoginPage() {
             <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
               <WifiOff className="h-10 w-10 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-bold text-destructive uppercase">Connection Lost</CardTitle>
+            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Timeout</CardTitle>
             <CardDescription className="mt-4">
-              We are unable to reach the administrative server. This is often due to strict firewall rules or a poor internet connection.
+              Unable to reach the security server. This is common in restricted network environments.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">
@@ -176,12 +184,11 @@ export default function AdminLoginPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Authenticating with Control Center...</p>
+        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Checking Permissions...</p>
       </div>
     );
   }
 
-  // If user is logged in but not approved (or doc doesn't exist yet)
   if (user && (!userData || !userData.approved)) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
@@ -192,18 +199,12 @@ export default function AdminLoginPage() {
             </div>
             <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
             <CardDescription className="text-muted-foreground mt-4 text-balance">
-              Your account <strong>{user.email}</strong> is registered. However, administrative access must be manually approved.
+              Your account <strong>{user.email}</strong> is registered. Administrative access must be approved by a Super Admin.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <p className="text-sm text-muted-foreground">Credentials verified. Status: <strong>AWAITING APPROVAL</strong>.</p>
-            </div>
-          </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button variant="outline" className="w-full border-primary/20" onClick={() => auth.signOut()}>
-              Sign Out & Return
+              Sign Out
             </Button>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
               Protocol: Secure Access Request Active
@@ -231,7 +232,7 @@ export default function AdminLoginPage() {
               Nova Admin
             </CardTitle>
             <CardDescription className="text-muted-foreground font-light text-base">
-              Secure authentication for authorized personnel.
+              Authorized personnel only.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -254,42 +255,21 @@ export default function AdminLoginPage() {
               <TabsContent value="login" className="space-y-5">
                 <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Admin Email</Label>
-                    <Input 
-                      id="login-email" 
-                      type="email" 
-                      placeholder="admin@example.com" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      required 
-                      className="bg-black/40 border-primary/10"
-                    />
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10"/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
-                      <Input 
-                        id="login-password" 
-                        type={showPassword ? 'text' : 'password'} 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                        className="bg-black/40 border-primary/10 pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
+                      <Input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10"/>
+                      <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase shadow-lg shadow-primary/20" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                    Enter Dashboard
+                    Login
                   </Button>
                 </form>
               </TabsContent>
@@ -297,49 +277,28 @@ export default function AdminLoginPage() {
               <TabsContent value="signup" className="space-y-5">
                 <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Registration Email</Label>
-                    <Input 
-                      id="signup-email" 
-                      type="email" 
-                      placeholder="admin@example.com" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      required 
-                      className="bg-black/40 border-primary/10"
-                    />
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input id="signup-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-primary/10"/>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Secure Password</Label>
+                    <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
-                      <Input 
-                        id="signup-password" 
-                        type={showPassword ? 'text' : 'password'} 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                        className="bg-black/40 border-primary/10 pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
+                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-primary/10 pr-10"/>
+                      <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4 text-primary" /> : <Eye className="h-4 w-4 text-primary" />}
                       </Button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-12 mt-4 font-bold uppercase shadow-lg shadow-primary/20" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                    Request Access
+                    Register
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           </CardContent>
-          <CardFooter className="flex flex-col gap-3 py-6 bg-black/20 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold">
-            <p>Unauthorized access attempts are monitored.</p>
+          <CardFooter className="py-6 bg-black/20 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold justify-center">
+            Unauthorized access attempts are monitored.
           </CardFooter>
         </Card>
       </div>
