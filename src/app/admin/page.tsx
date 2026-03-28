@@ -67,8 +67,10 @@ export default function AdminDashboard() {
 
   // Authorization Guard (Approved users only)
   useEffect(() => {
-    if (!isUserLoading && !isUserDataLoading && user && userData && !userData.approved) {
-      router.push('/admin/login');
+    if (!isUserLoading && !isUserDataLoading && user) {
+      if (!userData || !userData.approved) {
+        router.push('/admin/login');
+      }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router]);
 

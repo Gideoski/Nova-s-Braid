@@ -111,8 +111,23 @@ export default function AdminLoginPage() {
           : "Your request is pending. Please contact the administrator for approval.",
       });
       
-    } catch (error: any) {
+    } catch (error: any) => {
       setIsLoading(false);
+      
+      // If email already exists, it means they are trying to register again
+      if (error.code === 'auth/email-already-in-use') {
+        // Just try to sign them in instead to trigger the "Pending" view
+        signInWithEmailAndPassword(auth, email, password).catch(() => {
+           // If sign in fails too, just show the specific error
+           toast({
+            variant: 'destructive',
+            title: 'Account Exists',
+            description: getProfessionalErrorMessage(error),
+          });
+        });
+        return;
+      }
+
       toast({
         variant: 'destructive',
         title: 'Provisioning Failed',
@@ -129,8 +144,8 @@ export default function AdminLoginPage() {
     );
   }
 
-  // If user is logged in but not approved
-  if (user && userData && !userData.approved) {
+  // If user is logged in but not approved (or doc doesn't exist yet)
+  if (user && (!userData || !userData.approved)) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
         <Card className="max-w-md w-full border-primary/20 bg-card/40 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
