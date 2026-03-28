@@ -36,15 +36,12 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
-  const isMainAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
   // Redirection & Auto-registration Logic
   useEffect(() => {
     if (!isUserLoading && user && !isUserDataLoading) {
       const isUserMainAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // If we are sure the user record is missing, create it.
-      // We use a direct check to ensure we don't overwrite existing approval status.
       if (!userData && !userDocError && firestore) {
         const checkAndCreate = async () => {
           const userRef = doc(firestore, 'users', user.uid);
@@ -165,9 +162,9 @@ export default function AdminLoginPage() {
     );
   }
 
-  const isPending = !isUserLoading && !isUserDataLoading && user && !isMainAdmin && (!userData || userData.approved === false);
+  const isPending = !isUserLoading && !isUserDataLoading && user && user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase() && (!userData || userData.approved === false);
 
-  if (isUserLoading || (user && isUserDataLoading && !isMainAdmin) || isAuthorizing) {
+  if (isUserLoading || (user && isUserDataLoading && user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) || isAuthorizing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert, UserCog, UserMinus } from 'lucide-react';
+import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert, UserCog, UserMinus, MoreVertical, Shield } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -25,6 +25,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
@@ -91,7 +98,6 @@ export default function AdminDashboard() {
     const newStatus = !currentStatus;
 
     try {
-      // Use setDoc directly with await to ensure it is flushed to the database permanently
       await setDoc(userRef, { 
         approved: newStatus,
         email: email,
@@ -99,8 +105,8 @@ export default function AdminDashboard() {
       }, { merge: true });
       
       toast({
-        title: newStatus ? "User Approved" : "Access Revoked",
-        description: `${email} permissions saved permanently.`,
+        title: newStatus ? "Admin Authorized" : "Access Revoked",
+        description: `${email} status updated successfully.`,
       });
     } catch (error) {
       toast({
@@ -116,7 +122,19 @@ export default function AdminDashboard() {
   const deleteUser = async (uid: string) => {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', uid);
-    deleteDocumentNonBlocking(userRef);
+    try {
+      await deleteDoc(userRef);
+      toast({
+        title: "Account Deleted",
+        description: "User has been removed from the directory.",
+      });
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: "Error",
+        description: "Failed to delete account.",
+      });
+    }
   };
 
   const resetAllOtherUsers = () => {
@@ -466,54 +484,72 @@ export default function AdminDashboard() {
               {isAdminsLoading ? <div className="text-center p-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div> : (
                 <div className="grid gap-4">
                   {adminUsers?.map((admin: any) => (
-                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${admin.approved ? 'bg-primary/20 text-primary' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${admin.approved ? 'bg-primary/20 text-primary' : 'bg-yellow-500/20 text-yellow-500'}`}>
                           {admin.approved ? <ShieldCheck className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
                         </div>
                         <div>
-                          <p className="font-bold">{admin.email}</p>
-                          <Badge variant={admin.approved ? "default" : "outline"} className="text-[8px] uppercase">
-                            {admin.approved ? 'AUTHORIZED' : 'PENDING'}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold">{admin.email}</p>
+                            {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+                              <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Main Admin</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={admin.approved ? "default" : "outline"} className={`text-[9px] uppercase tracking-tighter ${!admin.approved && 'text-yellow-500 border-yellow-500/30'}`}>
+                              {admin.approved ? 'AUTHORIZED ADMIN' : 'PENDING APPROVAL'}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {admin.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase() && (
-                          <>
-                            <Button 
-                              variant={admin.approved ? "outline" : "default"} 
-                              onClick={() => toggleUserApproval(admin.id, admin.approved, admin.email)}
-                              disabled={isUpdatingUser === admin.id}
-                              size="sm"
-                              className="font-bold uppercase text-[10px]"
-                            >
-                              {isUpdatingUser === admin.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (admin.approved ? 'Revoke' : 'Approve')}
-                            </Button>
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive">
-                                  <Trash2 className="h-5 w-5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-card border-primary/20">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-destructive uppercase font-bold">Remove User?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Delete {admin.email} from directory.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteUser(admin.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </>
-                        )}
-                        {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
-                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Admin</Badge>
+                      <div className="flex items-center gap-2">
+                        {admin.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase() ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-5 w-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-card border-primary/10">
+                              <DropdownMenuItem 
+                                onClick={() => toggleUserApproval(admin.id, admin.approved, admin.email)}
+                                disabled={isUpdatingUser === admin.id}
+                                className="cursor-pointer"
+                              >
+                                {admin.approved ? (
+                                  <><ShieldAlert className="mr-2 h-4 w-4 text-yellow-500" /> Revoke Access</>
+                                ) : (
+                                  <><ShieldCheck className="mr-2 h-4 w-4 text-primary" /> Approve Admin</>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-primary/10" />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <div className="flex items-center px-2 py-1.5 text-sm text-destructive cursor-pointer hover:bg-destructive/10 transition-colors rounded-sm">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Account
+                                  </div>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-card border-primary/20">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-destructive font-bold uppercase">Permanently Delete?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will remove {admin.email} from the directory entirely.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="bg-secondary/50">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteUser(admin.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                           <div className="h-8 w-8 flex items-center justify-center">
+                              <Shield className="h-4 w-4 text-primary/40" />
+                           </div>
                         )}
                       </div>
                     </div>
