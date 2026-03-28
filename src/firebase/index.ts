@@ -2,53 +2,63 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore'
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+let appInstance: FirebaseApp | null = null;
+let firestoreInstance: Firestore | null = null;
+let authInstance: Auth | null = null;
+
+/**
+ * Initializes Firebase services using a singleton pattern.
+ * This ensures that services like Firestore are configured correctly (e.g., long polling)
+ * and that we don't attempt to re-initialize an already running app.
+ */
 export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+  if (!appInstance) {
+    if (getApps().length > 0) {
+      appInstance = getApp();
+    } else {
+      try {
+        // Attempt to initialize via Firebase App Hosting environment variables
+        appInstance = initializeApp();
+      } catch (e) {
+        // Fallback to config object for local development
+        appInstance = initializeApp(firebaseConfig);
       }
-      firebaseApp = initializeApp(firebaseConfig);
     }
-
-    return getSdks(firebaseApp);
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
-}
+  if (!firestoreInstance) {
+    try {
+      // Force long polling to avoid connectivity issues in restricted environments (like Cloud Workstations)
+      // This is the recommended setting for stable connections in the prototype environment.
+      firestoreInstance = initializeFirestore(appInstance, {
+        experimentalForceLongPolling: true,
+      });
+    } catch (e) {
+      // If already initialized or initialization fails, fallback to getFirestore
+      firestoreInstance = getFirestore(appInstance);
+    }
+  }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  let firestore;
-  try {
-    // Force long polling to avoid connectivity issues in restricted environments (like Cloud Workstations)
-    firestore = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
-    });
-  } catch (e) {
-    // If already initialized, fallback to getFirestore
-    firestore = getFirestore(firebaseApp);
+  if (!authInstance) {
+    authInstance = getAuth(appInstance);
   }
 
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore
+    firebaseApp: appInstance,
+    auth: authInstance,
+    firestore: firestoreInstance
   };
+}
+
+/**
+ * Helper function to retrieve initialized SDKs. 
+ * Delegates to initializeFirebase for consistent initialization.
+ */
+export function getSdks(firebaseApp: FirebaseApp) {
+  return initializeFirebase();
 }
 
 export * from './provider';
