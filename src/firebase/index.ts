@@ -21,16 +21,13 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       try {
-        // Force long polling to bypass restrictive proxies/firewalls common in cloud IDEs.
-        // We explicitly set the host and disable auto-detection to ensure a stable connection.
+        // Force long polling to bypass restrictive proxies/firewalls.
+        // This is critical to avoid the "10 second timeout" error.
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,
-          host: 'firestore.googleapis.com',
-          ssl: true,
         });
       } catch (e) {
-        // If already initialized or fails, fallback to standard getter
         firestoreInstance = getFirestore(appInstance);
       }
     } else {

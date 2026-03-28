@@ -16,12 +16,12 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       allow get, list: if true;
       allow create: if true;
-      allow update, delete: if isApprovedAdmin();
+      allow update, delete: if isApprovedAdmin() || isSuperAdminEmail();
     }
 
     match /serviceCategories/{categoryId} {
       allow get, list: if true;
-      allow write: if isApprovedAdmin();
+      allow write: if isApprovedAdmin() || isSuperAdminEmail();
     }
 
     match /users/{userId} {
@@ -29,20 +29,20 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
       
       // Allow users to read their own profile, or admins to read any profile
-      allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin());
+      allow get: if request.auth != null && (request.auth.uid == userId || isApprovedAdmin() || isSuperAdminEmail());
       
-      // Allow the Super Admin to update their own record (to set approved: true)
-      // OR allow an already approved admin to update other users (but not themselves)
+      // Allow the Super Admin to update any record (including their own)
+      // Allow approved admins to update other users
       allow update: if request.auth != null && (
-        (request.auth.uid == userId && isSuperAdminEmail()) || 
+        isSuperAdminEmail() || 
         (isApprovedAdmin() && userId != request.auth.uid)
       );
       
-      // Only approved admins can delete users (except themselves)
-      allow delete: if isApprovedAdmin() && userId != request.auth.uid;
+      // Allow Super Admin or approved admins to delete users
+      allow delete: if isSuperAdminEmail() || (isApprovedAdmin() && userId != request.auth.uid);
       
-      // Only approved admins can list the entire user directory
-      allow list: if isApprovedAdmin();
+      // CRITICAL: Allow the Super Admin to list users so they can approve them
+      allow list: if isApprovedAdmin() || isSuperAdminEmail();
     }
   }
 }
