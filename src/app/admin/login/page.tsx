@@ -36,22 +36,24 @@ export default function AdminLoginPage() {
 
   const { data: userData, isLoading: isUserDataLoading, error: userDocError } = useDoc(userDocRef);
 
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
   // Redirection & Auto-approval / Re-registration Logic
   useEffect(() => {
     if (!isUserLoading && user) {
-      const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // Handle missing Firestore record (e.g. after a directory reset)
       if (!isUserDataLoading && !userData) {
         const userRef = doc(firestore!, 'users', user.uid);
         setDocumentNonBlocking(userRef, {
           email: user.email,
-          approved: isAdmin, // Only auto-approve the Main Admin
+          approved: isUserAdmin, // Only auto-approve the Main Admin
           createdAt: new Date().toISOString()
         }, { merge: true });
       }
 
-      if (isAdmin) {
+      if (isUserAdmin) {
         router.push('/admin');
       } else if (!isUserDataLoading && userData?.approved) {
         router.push('/admin');
@@ -103,18 +105,18 @@ export default function AdminLoginPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
-      const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const isUserAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isAdmin, 
+        approved: isUserAdmin, 
         createdAt: new Date().toISOString()
       }, { merge: true });
 
       toast({
-        title: isAdmin ? "Admin Access Granted" : "Registration Sent",
-        description: isAdmin 
+        title: isUserAdmin ? "Admin Access Granted" : "Registration Sent",
+        description: isUserAdmin 
           ? "Welcome back, Admin." 
           : "Access request is pending administrator approval.",
       });
@@ -156,10 +158,9 @@ export default function AdminLoginPage() {
     );
   }
 
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  const isPending = user && (!userData || !userData.approved) && !isAdmin;
+  const isPending = !isUserLoading && !isUserDataLoading && user && !isAdmin && (!userData || userData.approved === false);
 
-  if (isUserLoading || (user && isUserDataLoading && !isPending && !isAdmin)) {
+  if (isUserLoading || (user && isUserDataLoading && !isAdmin)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
