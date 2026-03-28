@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Edit3, Save, X, RotateCcw, Percent, Tag, LogOut, Loader2, Users, LayoutDashboard, ShieldCheck, ShieldAlert, UserCog, UserMinus } from 'lucide-react';
 import { ServiceCategory } from '@/lib/types';
 import { serviceCategories as initialData } from '@/lib/data';
-import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,12 +67,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.push('/admin/login');
+      router.replace('/admin/login');
       return;
     }
     if (!isUserLoading && !isUserDataLoading && user) {
       if (!isAdmin && (!userData || !userData.approved)) {
-        router.push('/admin/login');
+        router.replace('/admin/login');
       }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router, isAdmin]);
@@ -82,10 +82,16 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
-  const toggleUserApproval = (uid: string, currentStatus: boolean) => {
+  const toggleUserApproval = (uid: string, currentStatus: boolean, email: string) => {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', uid);
-    updateDocumentNonBlocking(userRef, { approved: !currentStatus });
+    // Use setDocumentNonBlocking with merge to ensure it updates existing or creates if missing
+    setDocumentNonBlocking(userRef, { 
+      approved: !currentStatus,
+      email: email,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
     toast({
       title: !currentStatus ? "User Approved" : "Access Revoked",
       description: `Permissions updated successfully.`,
@@ -462,7 +468,7 @@ export default function AdminDashboard() {
                           <>
                             <Button 
                               variant={admin.approved ? "outline" : "default"} 
-                              onClick={() => toggleUserApproval(admin.id, admin.approved)}
+                              onClick={() => toggleUserApproval(admin.id, admin.approved, admin.email)}
                               size="sm"
                               className="font-bold uppercase text-[10px]"
                             >
@@ -491,7 +497,7 @@ export default function AdminDashboard() {
                           </>
                         )}
                         {admin.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
-                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Main Admin</Badge>
+                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Admin</Badge>
                         )}
                       </div>
                     </div>

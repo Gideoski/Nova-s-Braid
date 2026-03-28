@@ -45,12 +45,11 @@ export default function AdminLoginPage() {
       const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // Handle missing Firestore record (e.g. after a directory reset)
-      // We only do this if there's no error, to avoid overwriting on transient permission issues
       if (!isUserDataLoading && !userData && !userDocError) {
         const userRef = doc(firestore!, 'users', user.uid);
         setDocumentNonBlocking(userRef, {
           email: user.email,
-          approved: isUserAdmin, // Only auto-approve the Main Admin
+          approved: isUserAdmin, 
           createdAt: new Date().toISOString()
         }, { merge: true });
       }
@@ -58,10 +57,7 @@ export default function AdminLoginPage() {
       // Check for authorized state
       if (isUserAdmin || (userData?.approved === true)) {
         setIsAuthorizing(true);
-        const timer = setTimeout(() => {
-          router.push('/admin');
-        }, 800);
-        return () => clearTimeout(timer);
+        router.replace('/admin');
       }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, userDocError, router, firestore]);
