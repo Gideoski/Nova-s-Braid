@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,11 +41,12 @@ export default function AdminLoginPage() {
 
   // Redirection & Auto-approval / Re-registration Logic
   useEffect(() => {
+    // Only proceed if auth state is settled and we aren't waiting for the document fetch
     if (!isUserLoading && user && !isUserDataLoading) {
       const isUserAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
       // Handle missing Firestore record (e.g. after a directory reset)
-      // Only create if it definitely doesn't exist and we aren't already loading it
+      // We only run this if we are SURE the data is missing (not loading)
       if (!userData && !userDocError) {
         const userRef = doc(firestore!, 'users', user.uid);
         setDocumentNonBlocking(userRef, {
@@ -58,7 +59,6 @@ export default function AdminLoginPage() {
       // Check for authorized state
       if (isUserAdmin || (userData?.approved === true)) {
         setIsAuthorizing(true);
-        // Add a small delay to ensure redirect happens after state is stable
         const timeout = setTimeout(() => {
           router.replace('/admin');
         }, 100);
@@ -123,7 +123,7 @@ export default function AdminLoginPage() {
         title: isUserAdmin ? "Admin Access Granted" : "Registration Sent",
         description: isUserAdmin 
           ? "Welcome back, Admin." 
-          : "Access request is pending administrator approval.",
+          : "Access request is pending approval.",
       });
       
     } catch (error: any) {
@@ -136,7 +136,6 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Connectivity Issue Screen
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">

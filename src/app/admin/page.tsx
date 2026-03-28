@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     const newStatus = !currentStatus;
 
     try {
-      // Use setDoc directly to ensure it waits for the write or at least triggers it reliably
+      // Use setDoc directly with await to ensure it is flushed to the database
       await setDoc(userRef, { 
         approved: newStatus,
         email: email,
@@ -100,13 +100,13 @@ export default function AdminDashboard() {
       
       toast({
         title: newStatus ? "User Approved" : "Access Revoked",
-        description: `${email} permissions updated.`,
+        description: `${email} permissions saved permanently.`,
       });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: "Update Failed",
-        description: "Could not save permissions. Please try again.",
+        description: "Could not save permissions. Please check connection.",
       });
     } finally {
       setIsUpdatingUser(null);
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
     });
     toast({
       title: "Directory Refreshed",
-      description: "Permissions cleared. Users can now Login to appear as Pending again.",
+      description: "Permissions cleared. Users can now re-register via login.",
     });
   };
 
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center bg-secondary/20 p-6 rounded-lg border border-primary/10">
             <div>
               <h2 className="text-xl font-bold text-primary uppercase tracking-wider">Service Management</h2>
-              <p className="text-sm text-muted-foreground">Define your styles and categories</p>
+              <p className="text-sm text-muted-foreground">Define styles and categories</p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -439,7 +439,7 @@ export default function AdminDashboard() {
                   <UserCog className="h-6 w-6" />
                   Access Control
                 </CardTitle>
-                <CardDescription>Manage administrative privileges</CardDescription>
+                <CardDescription>Manage admin privileges</CardDescription>
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -450,9 +450,9 @@ export default function AdminDashboard() {
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-card border-primary/20">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-destructive font-bold uppercase">Reset User Directory?</AlertDialogTitle>
+                    <AlertDialogTitle className="text-destructive font-bold uppercase">Reset Directory?</AlertDialogTitle>
                     <AlertDialogDescription className="text-muted-foreground">
-                      This will remove permissions for all users except you ({ADMIN_EMAIL}). Users can then log in again to show up as "Pending."
+                      This clears permissions for all users except you ({ADMIN_EMAIL}). Users can then log in again to show up as "Pending."
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -501,7 +501,7 @@ export default function AdminDashboard() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-destructive uppercase font-bold">Remove User?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Completely delete {admin.email} from the directory.
+                                    Delete {admin.email} from directory.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -520,7 +520,7 @@ export default function AdminDashboard() {
                   ))}
                   {(!adminUsers || adminUsers.length === 0) && (
                     <div className="text-center p-12 text-muted-foreground italic">
-                      No other registered accounts found.
+                      No other accounts found.
                     </div>
                   )}
                 </div>
