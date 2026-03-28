@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
 const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
@@ -41,21 +41,18 @@ export default function AdminLoginPage() {
     if (!isUserLoading && user) {
       const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
-      // If Super Admin is logged in, prioritize access
       if (isSuperAdmin) {
-        if (!isUserDataLoading) {
-          if (!userData || !userData.approved) {
-            // Force approve super admin in DB
-            const userRef = doc(firestore!, 'users', user.uid);
-            setDocumentNonBlocking(userRef, {
-              email: user.email,
-              approved: true,
-              createdAt: userData?.createdAt || new Date().toISOString()
-            }, { merge: true });
-          }
-          // Redirect immediately for Super Admin
-          router.push('/admin');
+        // For Super Admin, we redirect immediately based on Auth token email
+        // We'll attempt the DB approval in the background if needed
+        if (!isUserDataLoading && (!userData || !userData.approved)) {
+          const userRef = doc(firestore!, 'users', user.uid);
+          setDocumentNonBlocking(userRef, {
+            email: user.email,
+            approved: true,
+            createdAt: userData?.createdAt || new Date().toISOString()
+          }, { merge: true });
         }
+        router.push('/admin');
       } else if (!isUserDataLoading && userData?.approved) {
         // Normal approved admin
         router.push('/admin');
@@ -66,23 +63,23 @@ export default function AdminLoginPage() {
   const getProfessionalErrorMessage = (error: any) => {
     const code = error?.code || '';
     if (error?.message?.includes('unavailable') || error?.message?.includes('timeout')) {
-      return 'Server connection lost. Please check your internet or retry.';
+      return 'Network connection is unstable. Please retry.';
     }
     switch (code) {
       case 'auth/email-already-in-use':
-        return 'This email address is already registered. Please login instead.';
+        return 'This account is already registered. Please sign in.';
       case 'auth/invalid-email':
         return 'Invalid email format.';
       case 'auth/weak-password':
-        return 'Password is too weak. Please use at least 6 characters.';
+        return 'Password should be at least 6 characters.';
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
         return 'Invalid credentials. Access denied.';
       case 'auth/too-many-requests':
-        return 'Too many attempts. Access temporarily restricted.';
+        return 'Too many attempts. Access restricted.';
       default:
-        return 'An internal error occurred. Please try again.';
+        return 'An error occurred. Please try again.';
     }
   };
 
@@ -111,12 +108,13 @@ export default function AdminLoginPage() {
 
       let shouldBeApproved = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
       
+      // Background check for first user if not super admin
       if (!shouldBeApproved) {
         try {
           const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
           shouldBeApproved = usersSnap.empty;
         } catch (checkError) {
-          console.warn("Priority check timed out.", checkError);
+          console.warn("Priority check delayed.", checkError);
         }
       }
 
@@ -130,21 +128,19 @@ export default function AdminLoginPage() {
       toast({
         title: shouldBeApproved ? "Master Access Granted" : "Registration Sent",
         description: shouldBeApproved 
-          ? "Welcome, Master Operator. Entering system..." 
-          : "Your access request is pending administrator approval.",
+          ? "Welcome, Master Operator." 
+          : "Access request is pending administrator approval.",
       });
       
     } catch (error: any) {
       setIsLoading(false);
-      // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
         toast({
-          title: "Account Already Registered",
-          description: "Please use the login tab to access your account.",
+          title: "Account Registered",
+          description: "Use the login tab to access your account.",
         });
         return;
       }
-
       toast({
         variant: 'destructive',
         title: 'Registration Error',
@@ -153,6 +149,7 @@ export default function AdminLoginPage() {
     }
   };
 
+  // Show a specialized screen if Firestore times out but we're not the super admin
   if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
@@ -161,9 +158,9 @@ export default function AdminLoginPage() {
             <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
               <WifiOff className="h-10 w-10 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Timeout</CardTitle>
+            <CardTitle className="text-2xl font-bold text-destructive uppercase">Network Delay</CardTitle>
             <CardDescription className="mt-4">
-              Unable to reach the security server. This is common in restricted network environments.
+              The security server is taking too long to respond. This is common in some network environments.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">
@@ -171,7 +168,7 @@ export default function AdminLoginPage() {
               Retry Connection
             </Button>
             <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
-              Back to Login
+              Switch Account
             </Button>
           </CardFooter>
         </Card>
@@ -179,14 +176,14 @@ export default function AdminLoginPage() {
     );
   }
 
-  // Super Admin bypass: If it's the super admin email, we don't show the pending screen
-  const isPending = user && (!userData || !userData.approved) && user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase();
+  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isPending = user && (!userData || !userData.approved) && !isSuperAdmin;
 
-  if (isUserLoading || (user && isUserDataLoading && !isPending && user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase())) {
+  if (isUserLoading || (user && isUserDataLoading && !isPending && !isSuperAdmin)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Checking Permissions...</p>
+        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Verifying Access...</p>
       </div>
     );
   }
@@ -200,16 +197,16 @@ export default function AdminLoginPage() {
               <ShieldAlert className="h-10 w-10 text-primary animate-pulse" />
             </div>
             <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
-            <CardDescription className="text-muted-foreground mt-4 text-balance">
-              Your account <strong>{user.email}</strong> is registered. Administrative access must be approved by a Super Admin.
+            <CardDescription className="text-muted-foreground mt-4">
+              Account <strong>{user.email}</strong> is registered. Access must be authorized by a Super Admin.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">
             <Button variant="outline" className="w-full border-primary/20" onClick={() => auth.signOut()}>
-              Sign Out
+              Log Out
             </Button>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
-              Protocol: Secure Access Request Active
+              Protocol: Secure Access Active
             </p>
           </CardFooter>
         </Card>
@@ -300,7 +297,7 @@ export default function AdminLoginPage() {
             </Tabs>
           </CardContent>
           <CardFooter className="py-6 bg-black/20 text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-semibold justify-center">
-            Unauthorized access attempts are monitored.
+            Monitoring active security protocols.
           </CardFooter>
         </Card>
       </div>

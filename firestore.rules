@@ -10,7 +10,7 @@ service cloud.firestore {
     
     // Helper to check if the current user is the hardcoded super admin
     function isSuperAdminEmail() {
-      return request.auth != null && request.auth.token.email == 'gideonjackbara@gmail.com';
+      return request.auth != null && request.auth.token.email.lower() == 'gideonjackbara@gmail.com';
     }
 
     match /appointments/{appointmentId} {

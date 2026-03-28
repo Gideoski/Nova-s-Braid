@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 
+const SUPER_ADMIN_EMAIL = 'gideonjackbara@gmail.com';
+
 export default function AdminDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
@@ -58,17 +60,17 @@ export default function AdminDashboard() {
   const [newStyle, setNewStyle] = useState<{ catId: string; name: string; price: string } | null>(null);
   const [discount, setDiscount] = useState<{ catId: string; percentage: string } | null>(null);
 
-  // Authentication Guard
+  // Authentication & Authorization Guard
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/admin/login');
+      return;
     }
-  }, [user, isUserLoading, router]);
 
-  // Authorization Guard (Approved users only)
-  useEffect(() => {
     if (!isUserLoading && !isUserDataLoading && user) {
-      if (!userData || !userData.approved) {
+      const isSuperAdmin = user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      // Allow super admin regardless of DB status, but block others if not approved
+      if (!isSuperAdmin && (!userData || !userData.approved)) {
         router.push('/admin/login');
       }
     }
@@ -174,7 +176,9 @@ export default function AdminDashboard() {
     setDiscount(null);
   };
 
-  if (isUserLoading || isUserDataLoading || !user || !userData?.approved) {
+  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  if (isUserLoading || (!isSuperAdmin && isUserDataLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -187,7 +191,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-primary uppercase sparkle-text">Control Center</h1>
-          <p className="text-muted-foreground font-light italic mt-1">Operator: {user.email}</p>
+          <p className="text-muted-foreground font-light italic mt-1">Operator: {user?.email}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="border-primary/20 hover:bg-primary/5" onClick={handleSignOut}>
@@ -201,11 +205,11 @@ export default function AdminDashboard() {
         <TabsList className="grid w-full grid-cols-2 mb-12 bg-secondary/50 p-1 border border-primary/10 h-14">
           <TabsTrigger value="services" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all">
             <LayoutDashboard className="mr-2 h-5 w-5" />
-            Manage Services
+            Services
           </TabsTrigger>
           <TabsTrigger value="access" className="text-lg py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold transition-all">
             <Users className="mr-2 h-5 w-5" />
-            Access Control
+            Admins
           </TabsTrigger>
         </TabsList>
 
@@ -226,12 +230,12 @@ export default function AdminDashboard() {
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-primary font-bold uppercase">Restore default styles?</AlertDialogTitle>
                   <AlertDialogDescription className="text-muted-foreground">
-                    This will overwrite current categories with the original salon baseline. This action cannot be undone.
+                    This will overwrite current categories with the original salon baseline.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="bg-secondary/50">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSeedData} className="bg-primary text-primary-foreground">Confirm Restore</AlertDialogAction>
+                  <AlertDialogAction onClick={handleSeedData} className="bg-primary text-primary-foreground">Confirm</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -241,12 +245,12 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="text-lg uppercase tracking-widest text-primary/80 flex items-center gap-2">
                 <Plus className="h-4 w-4" />
-                Create Category
+                New Category
               </CardTitle>
             </CardHeader>
             <CardContent className="flex gap-4">
               <Input 
-                placeholder="Category Name (e.g., Knotless, Ponytail)" 
+                placeholder="Category Name" 
                 value={newCategoryName} 
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 className="bg-black/20 border-primary/10"
@@ -265,7 +269,7 @@ export default function AdminDashboard() {
                     <div>
                       <CardTitle className="text-2xl font-bold text-primary uppercase tracking-tight">{category.name}</CardTitle>
                       <CardDescription className="font-mono text-[10px] uppercase tracking-widest mt-1">
-                        {category.services.length} Styles listed
+                        {category.services.length} Styles
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
@@ -283,12 +287,12 @@ export default function AdminDashboard() {
                           <AlertDialogHeader>
                             <AlertDialogTitle className="text-destructive font-bold uppercase">Delete Category?</AlertDialogTitle>
                             <AlertDialogDescription className="text-muted-foreground">
-                              This will permanently remove "{category.name}" and all {category.services.length} styles associated with it.
+                              Permanently remove "{category.name}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="bg-secondary/50">Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteCategory(category.id!)} className="bg-destructive text-destructive-foreground">Delete Permanently</AlertDialogAction>
+                            <AlertDialogAction onClick={() => deleteCategory(category.id!)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -299,12 +303,12 @@ export default function AdminDashboard() {
                       <div className="bg-primary/5 p-4 rounded-lg mb-6 flex flex-col md:flex-row items-center gap-4 border border-primary/20 animate-in slide-in-from-top-2">
                         <div className="flex items-center gap-2">
                           <Tag className="h-5 w-5 text-primary" />
-                          <Label className="font-bold uppercase tracking-widest text-[10px]">Percentage Discount (%):</Label>
+                          <Label className="font-bold uppercase tracking-widest text-[10px]">Discount (%):</Label>
                           <Input type="number" className="w-24 bg-black/40 border-primary/20" value={discount.percentage} onChange={e => setDiscount({ ...discount, percentage: e.target.value })} />
                         </div>
                         <div className="flex gap-2">
                           <Button size="sm" onClick={() => applyDiscount(category.id!)}>Apply</Button>
-                          <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Reset All</Button>
+                          <Button size="sm" variant="outline" onClick={() => clearDiscount(category.id!)}>Reset</Button>
                           <Button size="sm" variant="ghost" onClick={() => setDiscount(null)}>Cancel</Button>
                         </div>
                       </div>
@@ -333,11 +337,6 @@ export default function AdminDashboard() {
                                     <span className="text-xs line-through text-muted-foreground/60">₦{service.originalPrice.toLocaleString()}</span>
                                   )}
                                 </div>
-                                {service.originalPrice && service.originalPrice > service.price && (
-                                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] uppercase font-bold">
-                                    {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
-                                  </Badge>
-                                )}
                               </div>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="ghost" size="icon" className="hover:text-primary" onClick={() => setEditingService({ catId: category.id!, serviceIndex: idx, name: service.name, price: service.price.toString() })}>
@@ -367,10 +366,10 @@ export default function AdminDashboard() {
                   <CardFooter className="bg-secondary/10 py-4 border-t border-primary/10">
                     {newStyle?.catId === category.id ? (
                       <div className="flex flex-col md:flex-row w-full gap-3 p-2 bg-black/20 rounded-lg animate-in slide-in-from-bottom-2">
-                        <Input placeholder="New Style Name" className="flex-1 bg-black/40" value={newStyle.name} onChange={e => setNewStyle({...newStyle, name: e.target.value})} />
+                        <Input placeholder="Style Name" className="flex-1 bg-black/40" value={newStyle.name} onChange={e => setNewStyle({...newStyle, name: e.target.value})} />
                         <Input type="number" placeholder="Price" className="w-32 bg-black/40" value={newStyle.price} onChange={e => setNewStyle({...newStyle, price: e.target.value})} />
                         <div className="flex gap-2">
-                          <Button onClick={() => addStyle(category.id!)}>Add Style</Button>
+                          <Button onClick={() => addStyle(category.id!)}>Add</Button>
                           <Button variant="ghost" onClick={() => setNewStyle(null)}>Cancel</Button>
                         </div>
                       </div>
@@ -393,82 +392,69 @@ export default function AdminDashboard() {
               <div>
                 <CardTitle className="uppercase tracking-widest text-primary flex items-center gap-2">
                   <UserCog className="h-6 w-6" />
-                  Admin Access Control
+                  Access Control
                 </CardTitle>
-                <CardDescription>Authorize or revoke administrative privileges</CardDescription>
+                <CardDescription>Manage administrative privileges</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
               {isAdminsLoading ? <div className="text-center p-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div> : (
                 <div className="grid gap-4">
                   {adminUsers?.map((admin: any) => (
-                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20 shadow-lg shadow-primary/5' : 'bg-secondary/20 border-white/5 opacity-80'}`}>
+                    <div key={admin.id} className={`flex items-center justify-between p-6 rounded-xl border transition-all ${admin.approved ? 'bg-primary/5 border-primary/20' : 'bg-secondary/20'}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`h-14 w-14 rounded-full flex items-center justify-center transition-colors ${admin.approved ? 'bg-primary/20 text-primary shadow-inner shadow-primary/20' : 'bg-yellow-500/10 text-yellow-500'}`}>
-                          {admin.approved ? <ShieldCheck className="h-7 w-7" /> : <ShieldAlert className="h-7 w-7" />}
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${admin.approved ? 'bg-primary/20 text-primary' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                          {admin.approved ? <ShieldCheck className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
                         </div>
                         <div>
-                          <p className="font-bold text-lg tracking-tight">{admin.email}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant={admin.approved ? "default" : "outline"} className={admin.approved ? "bg-primary text-primary-foreground text-[8px] tracking-[0.2em] font-black" : "text-[8px] tracking-[0.2em] uppercase"}>
-                              {admin.approved ? 'AUTHORIZED' : 'PENDING APPROVAL'}
-                            </Badge>
-                            {admin.id === user.uid && <Badge variant="outline" className="text-green-500 border-green-500/20 text-[8px] tracking-[0.2em]">CURRENT OPERATOR</Badge>}
-                          </div>
+                          <p className="font-bold">{admin.email}</p>
+                          <Badge variant={admin.approved ? "default" : "outline"} className="text-[8px] uppercase">
+                            {admin.approved ? 'AUTHORIZED' : 'PENDING'}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        {admin.id !== user.uid && (
+                      <div className="flex gap-2">
+                        {admin.id !== user?.uid && (
                           <>
                             <Button 
                               variant={admin.approved ? "outline" : "default"} 
                               onClick={() => toggleUserApproval(admin.id, admin.approved)}
-                              className={`w-36 font-bold uppercase text-[10px] transition-all ${admin.approved ? "border-red-500/50 text-red-500 hover:bg-red-500/10" : "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/20"}`}
+                              size="sm"
+                              className="font-bold uppercase text-[10px]"
                             >
-                              {admin.approved ? 'Revoke Access' : 'Grant Access'}
+                              {admin.approved ? 'Revoke' : 'Approve'}
                             </Button>
                             
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="text-destructive">
                                   <Trash2 className="h-5 w-5" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent className="bg-card border-primary/20">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-destructive uppercase font-bold">Remove Admin?</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-muted-foreground">
-                                    This will completely delete the account for <strong>{admin.email}</strong>. They will need to register again if they require future access.
+                                  <AlertDialogTitle className="text-destructive uppercase font-bold">Remove User?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Completely delete {admin.email}.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-secondary/50">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteUser(admin.id)} className="bg-destructive text-destructive-foreground">Delete Account</AlertDialogAction>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteUser(admin.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
                           </>
                         )}
-                        {admin.id === user.uid && (
-                          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                            <ShieldCheck className="h-4 w-4 text-primary" />
-                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Master Access</span>
-                          </div>
+                        {admin.id === user?.uid && (
+                          <Badge className="bg-primary/20 text-primary border-primary/20 uppercase text-[10px]">Master</Badge>
                         )}
                       </div>
                     </div>
                   ))}
-                  {(!adminUsers || adminUsers.length === 0) && (
-                    <div className="text-center p-20 border-2 border-dashed border-primary/10 rounded-2xl">
-                      <p className="text-muted-foreground italic">No administrative records found.</p>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>
-            <CardFooter className="bg-black/20 py-4 flex justify-center border-t border-primary/10">
-              <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground font-bold">Secure Administrative Management Protocol Active</p>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

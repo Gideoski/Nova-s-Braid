@@ -22,10 +22,13 @@ export function initializeFirebase() {
     if (typeof window !== 'undefined') {
       try {
         // Force long polling to bypass restrictive proxies/firewalls common in cloud IDEs
+        // We explicitly disable auto-detection to ensure a stable connection immediately.
         firestoreInstance = initializeFirestore(appInstance, {
           experimentalForceLongPolling: true,
+          experimentalAutoDetectLongPolling: false,
         });
       } catch (e) {
+        // If already initialized or fails, fallback to standard getter
         firestoreInstance = getFirestore(appInstance);
       }
     } else {
