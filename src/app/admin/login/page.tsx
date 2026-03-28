@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, ArrowLeft, ShieldAlert, CheckCircle2, WifiOff, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
@@ -59,8 +58,9 @@ export default function AdminLoginPage() {
         return 'The credentials provided are incorrect. Access denied.';
       case 'auth/too-many-requests':
         return 'Multiple failed attempts detected. Access has been temporarily restricted for security.';
+      case 'auth/network-request-failed':
       case 'unavailable':
-        return 'The security server is currently unreachable. Please check your internet connection.';
+        return 'We are unable to reach the security server. Please check your internet connection and try again.';
       default:
         return 'An internal authentication error occurred. Please try again later.';
     }
@@ -93,15 +93,20 @@ export default function AdminLoginPage() {
       const newUser = userCredential.user;
 
       // Check if any users exist. If not, the first user is the super admin.
-      // We use a query with a limit for efficiency
-      const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
-      const isFirstUser = usersSnap.empty;
+      // We wrap this in a try/catch to ensure registration proceeds even if connectivity is spotty.
+      let isFirstUser = false;
+      try {
+        const usersSnap = await getDocs(query(collection(firestore!, 'users'), limit(1)));
+        isFirstUser = usersSnap.empty;
+      } catch (checkError) {
+        console.warn("Could not determine user priority, defaulting to pending status.", checkError);
+      }
 
-      // Create the user document in Firestore
+      // Create the user document in Firestore (non-blocking)
       const userRef = doc(firestore!, 'users', newUser.uid);
       setDocumentNonBlocking(userRef, {
         email: email,
-        approved: isFirstUser, // Auto-approve only if first user
+        approved: isFirstUser,
         createdAt: new Date().toISOString()
       }, { merge: true });
 
@@ -109,14 +114,12 @@ export default function AdminLoginPage() {
         title: isFirstUser ? "Master Account Created" : "Access Requested",
         description: isFirstUser 
           ? "You have been granted Master Access. Entering dashboard..." 
-          : "Your request is pending. Please contact the administrator for approval.",
+          : "Your registration is complete. Awaiting administrator approval.",
       });
       
     } catch (error: any) {
       // If email already exists, it means they are trying to register again
       if (error.code === 'auth/email-already-in-use') {
-        // Professional approach: attempt sign-in. If successful, 
-        // the UI will show the "Pending" screen via the useUser/useDoc hooks.
         signInWithEmailAndPassword(auth, email, password).catch((signInError: any) => {
            setIsLoading(false);
            toast({
@@ -138,7 +141,7 @@ export default function AdminLoginPage() {
   };
 
   // If there's a connectivity error, show a more helpful screen
-  if (userDocError && userDocError.message?.includes('unavailable')) {
+  if (userDocError && (userDocError.message?.includes('unavailable') || userDocError.message?.includes('timeout'))) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
         <Card className="max-w-md w-full border-destructive/20 bg-card/40 backdrop-blur-xl">
@@ -146,14 +149,17 @@ export default function AdminLoginPage() {
             <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
               <WifiOff className="h-10 w-10 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-bold text-destructive">Connection Lost</CardTitle>
+            <CardTitle className="text-2xl font-bold text-destructive uppercase">Connection Lost</CardTitle>
             <CardDescription className="mt-4">
-              We are unable to reach the administrative server. This is often due to a poor internet connection or strict firewall.
+              We are unable to reach the administrative server. This is often due to strict firewall rules or a poor internet connection.
             </CardDescription>
           </CardHeader>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" onClick={() => window.location.reload()}>
               Retry Connection
+            </Button>
+            <Button variant="link" className="text-muted-foreground text-xs" onClick={() => auth.signOut()}>
+              Back to Login
             </Button>
           </CardFooter>
         </Card>
@@ -163,8 +169,9 @@ export default function AdminLoginPage() {
 
   if (isUserLoading || (user && isUserDataLoading)) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground text-sm uppercase tracking-widest animate-pulse">Authenticating with Control Center...</p>
       </div>
     );
   }
@@ -180,13 +187,13 @@ export default function AdminLoginPage() {
             </div>
             <CardTitle className="text-3xl font-bold text-primary uppercase tracking-tighter">Access Pending</CardTitle>
             <CardDescription className="text-muted-foreground mt-4 text-balance">
-              Your account <strong>{user.email}</strong> is registered. However, administrative access must be manually approved by the master administrator.
+              Your account <strong>{user.email}</strong> is registered. However, administrative access must be manually approved.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <p className="text-sm text-muted-foreground">Registration confirmed. Your data is secure.</p>
+              <p className="text-sm text-muted-foreground">Credentials verified. Status: <strong>AWAITING APPROVAL</strong>.</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
@@ -194,7 +201,7 @@ export default function AdminLoginPage() {
               Sign Out & Return
             </Button>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center">
-              Awaiting verification by Control Center
+              Protocol: Secure Access Request Active
             </p>
           </CardFooter>
         </Card>
